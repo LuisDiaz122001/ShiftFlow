@@ -1,0 +1,405 @@
+openapi: 3.0.3
+info:
+  title: ShiftFlow API
+  description: API REST profesional para la gestión de turnos y nómina automatizada.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Servidor Local de Desarrollo
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Introduzca el token JWT generado vía /auth/login.
+
+security:
+  - bearerAuth: []
+
+components:
+  schemas:
+    # --- Wrapper Schemes ---
+    SuccessResponse:
+      type: object
+      properties:
+        data:
+          type: object
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+            current_page:
+              type: integer
+            last_page:
+              type: integer
+            total:
+              type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+          example: ["No se puede procesar un ciclo cerrado."]
+
+    # --- Domain Models ---
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        email:
+          type: string
+        contract:
+          $ref: '#/components/schemas/Contract'
+        created_at:
+          type: string
+          format: date-time
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: integer
+        salario_base:
+          type: number
+        estado:
+          type: string
+          enum: [activo, inactivo]
+
+    Shift:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        fecha_inicio:
+          type: string
+          format: date-time
+        fecha_fin:
+          type: string
+          format: date-time
+        calculation:
+          $ref: '#/components/schemas/ShiftCalculation'
+
+    ShiftCalculation:
+      type: object
+      properties:
+        valor_total:
+          type: number
+        detalle_json:
+          type: array
+          items:
+            type: object
+
+    PayrollCycle:
+      type: object
+      properties:
+        id:
+          type: integer
+        periodo:
+          type: object
+          properties:
+            inicio:
+              type: string
+              format: date
+            fin:
+              type: string
+              format: date
+        fecha_pago:
+          type: string
+          format: date
+        estado:
+          type: string
+          enum: [open, generated, closed]
+        is_locked_edition:
+          type: boolean
+        is_locked_calculation:
+          type: boolean
+
+    Payroll:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        payroll_cycle_id:
+          type: integer
+        salario_base_pagado:
+          type: number
+        recargos_pagados:
+          type: number
+        deducciones:
+          type: object
+          properties:
+            salud:
+              type: number
+            pension:
+              type: number
+            total:
+              type: number
+        total_pagado:
+          type: number
+        neto_pagado:
+          type: number
+        version:
+          type: integer
+        snapshot:
+          type: object
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayrollDetail'
+
+    PayrollDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        concept:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum: [earning, deduction]
+        hours:
+          type: number
+        rate:
+          type: number
+        amount:
+          type: number
+
+paths:
+  # --- AUTH ---
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión y obtener token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, device_name]
+              properties:
+                email: { type: string, example: admin@shiftflow.com }
+                password: { type: string, example: password }
+                device_name: { type: string, example: web_app }
+      responses:
+        '200':
+          description: Autenticación exitosa
+        '422':
+          description: Credenciales inválidas
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Obtener perfil del usuario autenticado
+      responses:
+        '200':
+          description: Perfil del usuario con rol y empleado vinculado
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión (revocar token)
+      responses:
+        '200':
+          description: Sesión cerrada
+
+  # --- EMPLOYEES ---
+  /employees:
+    get:
+      tags: [Employees]
+      summary: Listar todos los empleados
+      responses:
+        '200':
+          description: Listado exitoso
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Employee'
+
+  /employees/{id}:
+    get:
+      tags: [Employees]
+      summary: Obtener detalle de un empleado
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle del empleado
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # --- SHIFTS ---
+  /shifts:
+    get:
+      tags: [Shifts]
+      summary: Obtener historial de turnos
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Listado paginado de turnos
+    post:
+      tags: [Shifts]
+      summary: Registrar nuevo turno y calcular automáticamente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employee_id, fecha_inicio, fecha_fin]
+              properties:
+                employee_id: { type: integer, example: 1 }
+                fecha_inicio: { type: string, example: "2026-04-20 08:00:00" }
+                fecha_fin: { type: string, example: "2026-04-20 16:00:00" }
+      responses:
+        '201':
+          description: Turno registrado y calculado
+        '422':
+          description: Error de validación o ciclo bloqueado
+
+  /shifts/{id}/approve:
+    post:
+      tags: [Shifts]
+      summary: (Admin) Aprobar un turno pendiente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: [type: integer]
+      responses:
+        '200':
+          description: Turno aprobado
+        '403':
+          description: No autorizado (Solo Admin)
+
+  /shifts/{id}/reject:
+    post:
+      tags: [Shifts]
+      summary: (Admin) Rechazar un turno pendiente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: [type: integer]
+      responses:
+        '200':
+          description: Turno rechazado
+
+  /shifts/{id}/void:
+    post:
+      tags: [Shifts]
+      summary: (Admin) Anular un turno aprobado
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: [type: integer]
+      responses:
+        '200':
+          description: Turno anulado por auditoría
+
+  # --- PAYROLL CYCLES ---
+  /payroll-cycles:
+    post:
+      tags: [Payroll Cycles]
+      summary: Crear nuevo ciclo de nómina
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fecha_inicio, fecha_fin, fecha_pago]
+              properties:
+                fecha_inicio: { type: string, format: date }
+                fecha_fin: { type: string, format: date }
+                fecha_pago: { type: string, format: date }
+      responses:
+        '201':
+          description: Ciclo creado
+
+  /payroll-cycles/{id}/process:
+    post:
+      tags: [Payroll Cycles]
+      summary: Procesar liquidación masiva del ciclo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: [type: integer]
+        - name: force
+          in: query
+          description: Forzar regeneración si ya existe liquidación
+          schema: [type: boolean]
+      responses:
+        '200':
+          description: Liquidación completada exitosamente
+        '422':
+          $ref: '#/components/responses/DomainError'
+
+  /payroll-cycles/{id}/close:
+    post:
+      tags: [Payroll Cycles]
+      summary: Cerrar definitivamente el ciclo
+      responses:
+        '200':
+          description: Ciclo cerrado (Inmutable)
+
+  # --- PAYROLLS ---
+  /payrolls:
+    get:
+      tags: [Payrolls]
+      summary: Consultar registros de nómina pagados
+      parameters:
+        - name: employee_id
+          in: query
+          schema: [type: integer]
+        - name: payroll_cycle_id
+          in: query
+          schema: [type: integer]
+      responses:
+        '200':
+          description: Listado de nóminas
+
+responses:
+  NotFound:
+    description: El recurso solicitado no existe.
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/ErrorResponse'
+  DomainError:
+    description: Error de reglas de negocio (ej: Ciclo cerrado).
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/ErrorResponse'

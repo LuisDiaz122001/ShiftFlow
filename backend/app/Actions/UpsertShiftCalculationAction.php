@@ -8,26 +8,30 @@ use App\Models\ShiftCalculation;
 class UpsertShiftCalculationAction
 {
     /**
+     * Guarda o actualiza el resultado del cálculo de un turno de forma idempotente.
+     *
+     * @param Shift $shift
      * @param array{
-     *     total: float|int|string,
-     *     horas_diurnas: float|int|string,
-     *     horas_nocturnas: float|int|string,
-     *     horas_extra_diurnas: float|int|string,
-     *     horas_extra_nocturnas: float|int|string,
+     *     total: float,
+     *     horas_diurnas: float,
+     *     horas_nocturnas: float,
+     *     horas_extra_diurnas: float,
+     *     horas_extra_nocturnas: float,
      *     detalle: array<int, array<string, mixed>>
-     * } $calculation
+     * } $calculationResults
+     * @return ShiftCalculation
      */
-    public function handle(Shift $shift, array $calculation): ShiftCalculation
+    public function execute(Shift $shift, array $calculationResults): ShiftCalculation
     {
-        return ShiftCalculation::query()->updateOrCreate(
+        return ShiftCalculation::updateOrCreate(
             ['shift_id' => $shift->id],
             [
-                'horas_diurnas' => round((float) $calculation['horas_diurnas'], 2),
-                'horas_nocturnas' => round((float) $calculation['horas_nocturnas'], 2),
-                'horas_extra_diurnas' => round((float) $calculation['horas_extra_diurnas'], 2),
-                'horas_extra_nocturnas' => round((float) $calculation['horas_extra_nocturnas'], 2),
-                'valor_total' => round((float) $calculation['total'], 2),
-                'detalle_json' => $calculation['detalle'],
+                'horas_diurnas' => $calculationResults['horas_diurnas'],
+                'horas_nocturnas' => $calculationResults['horas_nocturnas'],
+                'horas_extra_diurnas' => $calculationResults['horas_extra_diurnas'],
+                'horas_extra_nocturnas' => $calculationResults['horas_extra_nocturnas'],
+                'valor_total' => $calculationResults['total'],
+                'detalle_json' => $calculationResults['detalle'],
             ]
         );
     }

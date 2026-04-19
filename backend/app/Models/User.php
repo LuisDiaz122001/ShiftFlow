@@ -13,7 +13,26 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, \Laravel\Sanctum\HasApiTokens;
+
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_EMPLOYEE = 'employee';
+    public const ROLE_SUPERVISOR = 'supervisor';
+
+    /**
+     * Comprueba si el usuario tiene el rol especificado.
+     * Compatible con el campo 'role' de la tabla users.
+     *
+     * @param string|array $role
+     */
+    public function hasRole(string|array $role): bool
+    {
+        if (is_array($role)) {
+            return in_array($this->role, $role, strict: true);
+        }
+
+        return $this->role === $role;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -23,9 +42,14 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'salario_base',
         'password',
+        'role',
     ];
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
 
     /**
      * The attributes that should be hidden for serialization.

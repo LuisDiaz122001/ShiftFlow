@@ -39,9 +39,12 @@ class ShiftCalculation extends Model
         return $this->belongsTo(Shift::class);
     }
 
+    /**
+     * Obtener el total de horas (suma de todos los tipos).
+     */
     public function getTotalHoursAttribute(): float
     {
-        return round(
+        return (float) round(
             (float) $this->horas_diurnas
             + (float) $this->horas_nocturnas
             + (float) $this->horas_extra_diurnas
@@ -50,12 +53,17 @@ class ShiftCalculation extends Model
         );
     }
 
+    /**
+     * Obtener el pago total calculado.
+     */
     public function getTotalPayAttribute(): float
     {
-        return round((float) $this->valor_total, 2);
+        return (float) round((float) $this->valor_total, 2);
     }
 
     /**
+     * Alias para detalle_json sugerido por la auditoría.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function getBreakdownAttribute(): array

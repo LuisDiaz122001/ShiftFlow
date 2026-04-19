@@ -1,59 +1,125 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚀 ShiftFlow - Plataforma de Nómina Inteligente
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+ShiftFlow es una plataforma de gestión de nómina moderna, diseñada con un núcleo de cálculo determinístico y una arquitectura auditable preparada para el mercado colombiano.
 
-## About Laravel
+## 💎 Características Principales
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### ⚙️ Motor de Cálculo de Turnos
+*   Cálculo automático de recargos nocturnos, dominicales y festivos.
+*   Gestión de horas extras (diurnas/nocturnas).
+*   Integración con contratos reales para resolución de salario base.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 🛡️ Integridad y Auditoría
+*   **Snapshot de Auditoría**: Captura inmutable de las reglas laborales y salarios al momento del cálculo.
+*   **Control de Estados**: Ciclos de nómina protegidos con máquina de estados (`open` -> `generated` -> `closed`).
+*   **Inmutabilidad**: Bloqueo real de edición de turnos y cálculos en periodos cerrados.
+*   **Integridad Matemática**: Validación estricta de `Ingresos - Deducciones == Neto` antes del cierre.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🌐 API REST v1
+*   API profesional y versionada bajo `/api/v1/`.
+*   Resources estandarizados para una integración sencilla con el frontend.
+*   Eager loading implementado para eliminar problemas de consultas N+1.
 
-## Learning Laravel
+## 🛠️ Stack Tecnológico
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+*   **Backend**: Laravel 11.x (PHP 8.2+)
+*   **Base de Datos**: MySQL / SQLite (Auditoría JSON soportada)
+*   **Testing**: PHPUnit (Suite de integridad de dominio y API)
+*   **Arquitectura**: Capa de Aplicación basada en **Actions** (Business Logic Decoupling)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🚀 Instalación y Setup
 
-## Laravel Sponsors
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/LuisDiaz122001/ShiftFlow.git
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2. **Instalar dependencias**
+   ```bash
+   composer install
+   npm install
+   ```
 
-### Premium Partners
+3. **Configurar el entorno**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+4. **Migraciones y Seeds**
+   ```bash
+   php artisan migrate --seed
+   ```
 
-## Contributing
+5. **Ejecutar tests**
+   ```bash
+   php artisan test
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🌐 API REST v1
 
-## Code of Conduct
+La plataforma expone una API RESTful documentada bajo el estándar **OpenAPI 3.0**.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 📄 Documentación Interactiva
+Puedes visualizar y probar la API utilizando el archivo [openapi.yaml](file:///c:/xampp/htdocs/ShiftFlow/backend/openapi.yaml) en herramientas como:
+*   [Swagger Editor](https://editor.swagger.io/)
+*   [Postman](https://www.postman.com/) (Importar YAML)
 
-## Security Vulnerabilities
+### 📍 Endpoints Principales
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Recurso | Método | Endpoint | Descripción |
+| :--- | :--- | :--- | :--- |
+| **Turnos** | POST | `/api/v1/shifts` | Registrar y calcular un turno. |
+| **Ciclos** | POST | `/api/v1/payroll-cycles/{id}/process` | Liquidar nómina masiva del ciclo. |
+| **Nóminas** | GET | `/api/v1/payrolls?employee_id={id}` | Consultar historial de pagos. |
 
-## License
+## 🛡️ Seguridad y Autorización (Gold Standard)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+ShiftFlow implementa un modelo de autorización de **tres niveles** basado en el middleware `CheckRole`, protegiendo cada endpoint según la función del usuario.
+
+### 🔐 Roles del Sistema
+
+| Rol | Descripción |
+|:---|:---|
+| `admin` | Control total del sistema (aprobaciones, nómina, ciclos). |
+| `supervisor` | Acceso de lectura a empleados y dashboard. |
+| `employee` | Acceso restringido a sus propios turnos y nóminas. |
+
+### 📋 Matriz de Acceso por Endpoint
+
+| Endpoint | employee | supervisor | admin |
+|:---|:---:|:---:|:---:|
+| `POST /auth/login` | ✅ | ✅ | ✅ |
+| `GET /auth/me` | ✅ | ✅ | ✅ |
+| `POST /auth/logout` | ✅ | ✅ | ✅ |
+| `GET /shifts` (propios) | ✅ | ✅ | ✅ |
+| `POST /shifts` (pendiente) | ✅ | ✅ | ✅ |
+| `GET /payrolls` (propias) | ✅ | ✅ | ✅ |
+| `GET /employees` | ❌ | ✅ | ✅ |
+| `POST /shifts/{id}/approve` | ❌ | ❌ | ✅ |
+| `POST /shifts/{id}/reject` | ❌ | ❌ | ✅ |
+| `POST /shifts/{id}/void` | ❌ | ❌ | ✅ |
+| `POST /payroll-cycles` | ❌ | ❌ | ✅ |
+| `POST /payroll-cycles/{id}/process` | ❌ | ❌ | ✅ |
+| `POST /payroll-cycles/{id}/close` | ❌ | ❌ | ✅ |
+
+### 🔑 Cuentas de Prueba (Seeder)
+
+| Email | Password | Rol |
+|:---|:---|:---|
+| `admin@test.com` | `password` | `admin` |
+| `emp@test.com` | `password` | `employee` |
+
+### 📋 Ciclo de Vida de los Turnos
+1.  **Registro**: Los empleados registran turnos en estado `pending`.
+2.  **Aprobación**: Un administrador revisa y marca como `approved`.
+3.  **Inmutabilidad**: Una vez aprobado o rechazado, el turno **no puede ser editado**.
+4.  **Anulación (Voiding)**: Si un turno aprobado es erróneo, se debe **anular** (no eliminar). El sistema permite crear un turno de reemplazo con trazabilidad cruzada.
+
+### 🚫 Políticas de Integridad
+*   **Zero-Delete**: La eliminación física de turnos está prohibida a nivel de modelo.
+*   **Ownership Check**: El sistema inyecta forzosamente el `employee_id` desde el usuario autenticado, impidiendo la suplantación de identidades.
+*   **Blindaje de Nómina**: El motor de liquidación ignora automáticamente turnos anulados o no aprobados.
+
+---
+Desarrollado como una solución robusta para la gestión de personal operativo bajo estándares de auditoría estricta.

@@ -4,38 +4,39 @@ namespace App\Actions;
 
 use App\Models\Shift;
 use App\Models\ShiftCalculation;
-use App\Services\ContractResolver;
 use App\Services\PayrollCalculatorService;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 class CalculateShiftAction
 {
     public function __construct(
-        private readonly ContractResolver $contractResolver,
-        private readonly PayrollCalculatorService $payrollCalculatorService,
-        private readonly UpsertShiftCalculationAction $upsertShiftCalculationAction,
+        private readonly PayrollCalculatorService $calculator,
+        private readonly UpsertShiftCalculationAction $upsertCalculation,
+        private readonly AssignShiftToCycleAction $assignCycle,
     ) {
     }
 
-    public function handle(Shift $shift): ShiftCalculation
+    /**
+     * Orquestador para calcular un turno y persistir el resultado.
+     *
+     * @param Shift $shift
+     * @return void
+     */
+    public function execute(Shift $shift): void
     {
-        return DB::transaction(function () use ($shift): ShiftCalculation {
-            $shift->loadMissing(['employee.contracts']);
+        // 1. Asegurar asociación a un ciclo
+        $this->assignCycle->execute($shift);
+        
+        $shift->loadMissing('payrollCycle');
 
-            if (! $shift->employee) {
-                throw new RuntimeException('El turno debe tener un empleado asociado para calcular y persistir la liquidacion.');
-            }
+        // Ajuste 3 Final: Bloquear recálculo automático si el ciclo ya fue generado o cerrado
+        if ($shift->payrollCycle->isLockedForCalculation()) {
+            throw new \RuntimeException('No se puede recalcular un turno en un ciclo liquidado o cerrado.');
+        }
 
-            $this->contractResolver->resolve(
-                $shift->employee,
-                Carbon::parse($shift->fecha_inicio)
-            );
+        // 2. Ejecutar cálculo técnico
+        $result = $this->calculator->calculate($shift);
 
-            $calculation = $this->payrollCalculatorService->calculate($shift);
-
-            return $this->upsertShiftCalculationAction->handle($shift, $calculation);
-        });
+        // 3. Persistir resultado (Idempotencia)
+        $this->upsertCalculation->execute($shift, $result);
     }
 }

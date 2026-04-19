@@ -14,6 +14,8 @@ class LaborRule extends Model
         'recargo_dominical',
         'extra_diurna',
         'extra_nocturna',
+        'porcentaje_salud',
+        'porcentaje_pension',
         'horas_max_diarias',
     ];
 
@@ -28,8 +30,9 @@ class LaborRule extends Model
             'vigente_desde' => 'date',
             'recargo_nocturno' => 'decimal:2',
             'recargo_dominical' => 'decimal:2',
-            'extra_diurna' => 'decimal:2',
             'extra_nocturna' => 'decimal:2',
+            'porcentaje_salud' => 'decimal:2',
+            'porcentaje_pension' => 'decimal:2',
             'horas_max_diarias' => 'decimal:2',
         ];
     }
