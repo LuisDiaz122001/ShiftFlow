@@ -19,18 +19,15 @@ class ShiftController extends Controller
 
         $query = Shift::with(['employee', 'calculation']);
 
-        // Si es empleado, forzamos el filtro de sus propios turnos
-        if (!$request->user()->isAdmin()) {
-            $employeeId = $request->user()->employee?->id;
-            if (!$employeeId) {
-                return response()->json(['errors' => ['Perfil de empleado no encontrado.']], 403);
-            }
-            $query->where('employee_id', $employeeId);
-        } else {
-            // Admin puede filtrar opcionalmente
+        if ($request->user()->isAdmin()) {
+            // Admin puede filtrar opcionalmente por empleado
             if ($request->has('employee_id')) {
-                $query->where('employee_id', $request->employee_id);
+                $query->where('employee_id', $request->integer('employee_id'));
             }
+        } else {
+            // Employee: siempre filtramos por su propio perfil
+            $employee = $request->user()->requireEmployee();
+            $query->where('employee_id', $employee->id);
         }
 
         return response()->json($query->paginate());
@@ -43,44 +40,42 @@ class ShiftController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        
-        // Blindaje contra Spoofing: Forzamos el employee_id desde el perfil del usuario autenticado si es empleado
-        if (!$user->isAdmin()) {
-            $employeeId = $user->employee?->id;
-            if (!$employeeId) {
-                return response()->json(['errors' => ['Su cuenta no tiene un perfil de empleado asociado.']], 403);
-            }
-            $data['employee_id'] = $employeeId;
-            $data['status'] = Shift::STATUS_PENDING;
-        } else {
-            // Admin puede crear turnos directamente aprobados
-            $data['status'] = Shift::STATUS_APPROVED;
+
+        // Blindaje de Identidad: employee_id SIEMPRE deriva del servidor
+        if ($user->isAdmin()) {
+            // Admin crea turnos directamente aprobados (employee_id viene del request)
+            $data['status']      = Shift::STATUS_APPROVED;
             $data['approved_by'] = $user->id;
             $data['approved_at'] = now();
+        } else {
+            // Employee: inyectamos su propio employee_id y forzamos pending
+            $employee            = $user->requireEmployee();
+            $data['employee_id'] = $employee->id;
+            $data['status']      = Shift::STATUS_PENDING;
         }
 
         $data['user_id'] = $user->id;
 
-        // Trazabilidad de reemplazo (Fase 4 Gold Standard)
+        // Trazabilidad de reemplazo (Gold Standard)
         if ($request->has('voids_shift_id')) {
             $oldShift = Shift::findOrFail($request->voids_shift_id);
-            
-            if (!$oldShift->is_voided) {
+
+            if (! $oldShift->is_voided) {
                 return response()->json(['errors' => ['El turno original debe ser anulado antes de registrar un reemplazo.']], 422);
             }
-            
+
             if ($oldShift->employee_id !== $data['employee_id']) {
                 return response()->json(['errors' => ['El turno correctivo debe pertenecer al mismo empleado.']], 422);
             }
-            
+
             $data['voids_shift_id'] = $oldShift->id;
         }
 
         $shift = Shift::create($data);
-        
+
         try {
             $calculateShift->execute($shift);
-            
+
             return response()->json([
                 'data' => $shift->load('calculation'),
                 'meta' => ['message' => 'Turno registrado correctamente.'],

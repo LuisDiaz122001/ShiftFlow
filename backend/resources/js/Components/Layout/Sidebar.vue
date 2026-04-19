@@ -30,7 +30,7 @@ const navigationGroups = computed(() => {
     ];
 
     const employee = [
-        { label: 'Mis Turnos', href: '#', icon: Clock, active: false },
+        { label: 'Mis Turnos', href: route('shifts.index'), icon: Clock, active: route().current('shifts.*') },
         { label: 'Mi Nómina', href: '#', icon: Wallet, active: false },
         { label: 'Historial', href: '#', icon: History, active: false },
     ];

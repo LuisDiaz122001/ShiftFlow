@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ShiftWebController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Rutas exclusivas de Admin y Supervisor
 Route::middleware(['auth', 'role:admin,supervisor'])->group(function () {
     // (Futuras rutas web de administración de empleados irán aquí)
+});
+
+// Turnos — accesible a todos los roles autenticados (el controlador filtra por el perfil)
+Route::middleware('auth')->group(function () {
+    Route::get('/shifts', [ShiftWebController::class, 'index'])->name('shifts.index');
+    Route::post('/shifts', [ShiftWebController::class, 'store'])->name('shifts.store');
 });
 
 // Rutas comunes a todos los usuarios autenticados (perfil propio)

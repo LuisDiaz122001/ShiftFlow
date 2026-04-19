@@ -52,6 +52,34 @@ class User extends Authenticatable
     }
 
     /**
+     * Retorna el perfil Employee asociado al usuario autenticado.
+     * Lanza una excepción estandarizada si el perfil no existe.
+     *
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    public function requireEmployee(): \App\Models\Employee
+    {
+        $employee = $this->employee;
+
+        if (! $employee) {
+            throw new \Illuminate\Auth\Access\AuthorizationException(
+                'Su cuenta no tiene un perfil de empleado asociado. Contacte al administrador.'
+            );
+        }
+
+        return $employee;
+    }
+
+    /**
+     * Retorna el employee_id del usuario autenticado o null.
+     * Usar en contextos donde la ausencia de perfil no es un error.
+     */
+    public function getEmployeeIdAttribute(): ?int
+    {
+        return $this->employee?->id;
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

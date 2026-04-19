@@ -18,21 +18,19 @@ class PayrollController extends Controller
 
         $query = Payroll::with(['employee', 'cycle', 'details']);
 
-        // Filtro de propiedad: Empleados solo ven lo suyo
-        if (!$request->user()->isAdmin()) {
-            $employeeId = $request->user()->employee?->id;
-            if (!$employeeId) {
-                return response()->json(['errors' => ['Perfil de empleado no encontrado.']], 403);
-            }
-            $query->where('employee_id', $employeeId);
-        } else {
+        if ($request->user()->isAdmin()) {
+            // Admin puede filtrar opcionalmente por empleado o ciclo
             if ($request->has('employee_id')) {
-                $query->where('employee_id', $request->employee_id);
+                $query->where('employee_id', $request->integer('employee_id'));
             }
+        } else {
+            // Employee: solo ve sus propias nóminas
+            $employee = $request->user()->requireEmployee();
+            $query->where('employee_id', $employee->id);
         }
 
         if ($request->has('payroll_cycle_id')) {
-            $query->where('payroll_cycle_id', $request->payroll_cycle_id);
+            $query->where('payroll_cycle_id', $request->integer('payroll_cycle_id'));
         }
 
         return PayrollResource::collection($query->paginate());
