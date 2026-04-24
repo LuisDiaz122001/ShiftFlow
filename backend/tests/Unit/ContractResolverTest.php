@@ -76,7 +76,8 @@ class ContractResolverTest extends TestCase
         return Employee::query()->create([
             'user_id' => $user->id,
             'nombre' => $user->name,
-            'estado' => Employee::ESTADO_ACTIVO,
+            'documento' => 'CONTRACT-RESOLVER-001',
+            'activo' => true,
         ]);
     }
 }

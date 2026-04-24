@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -25,26 +24,6 @@ return new class extends Migration
 
             $table->index('estado');
         });
-
-        $now = now();
-        $rows = DB::table('users')
-            ->select('id', 'name', 'created_at', 'updated_at')
-            ->orderBy('id')
-            ->get()
-            ->map(function (object $user) use ($now): array {
-                return [
-                    'user_id' => $user->id,
-                    'nombre' => $user->name,
-                    'estado' => 'activo',
-                    'created_at' => $user->created_at ?? $now,
-                    'updated_at' => $user->updated_at ?? $now,
-                ];
-            })
-            ->all();
-
-        if ($rows !== []) {
-            DB::table('employees')->insert($rows);
-        }
     }
 
     /**

@@ -42,7 +42,11 @@ class PayrollCycleFeatureTest extends TestCase
     public function test_it_fails_to_calculate_shift_if_no_cycle_exists(): void
     {
         $user = User::factory()->create();
-        $employee = Employee::create(['nombre' => 'Juan']);
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Juan',
+            'documento' => 'PAY-CYCLE-001',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2400000,
@@ -66,7 +70,11 @@ class PayrollCycleFeatureTest extends TestCase
     public function test_it_calculates_shift_when_cycle_is_open(): void
     {
         $user = User::factory()->create();
-        $employee = Employee::create(['nombre' => 'Juan']);
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Juan',
+            'documento' => 'PAY-CYCLE-002',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2400000,
@@ -99,7 +107,11 @@ class PayrollCycleFeatureTest extends TestCase
     public function test_it_generates_payroll_with_deductions_for_an_employee(): void
     {
         $user = User::factory()->create();
-        $employee = Employee::create(['nombre' => 'Juan']);
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Juan',
+            'documento' => 'PAY-CYCLE-003',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2400000, // 10k/hora

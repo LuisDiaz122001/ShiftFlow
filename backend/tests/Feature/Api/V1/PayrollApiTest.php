@@ -10,6 +10,7 @@ use App\Models\PayrollCycle;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PayrollApiTest extends TestCase
@@ -37,7 +38,17 @@ class PayrollApiTest extends TestCase
 
     public function test_can_create_shift_via_api(): void
     {
-        $employee = Employee::create(['nombre' => 'Juan API']);
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        Sanctum::actingAs($admin);
+        $employeeUser = User::factory()->create([
+            'role' => User::ROLE_EMPLOYEE,
+        ]);
+
+        $employee = Employee::create([
+            'user_id' => $employeeUser->id,
+            'nombre' => 'Juan API',
+            'documento' => 'PAYROLL-API-001',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2000000,
@@ -45,8 +56,6 @@ class PayrollApiTest extends TestCase
             'estado' => 'activo',
         ]);
 
-        User::factory()->create(); // Requerido para el turno (user_id)
-        
         PayrollCycle::create([
             'fecha_inicio' => '2026-04-16',
             'fecha_fin' => '2026-04-30',
@@ -66,7 +75,17 @@ class PayrollApiTest extends TestCase
 
     public function test_can_process_payroll_cycle_via_api(): void
     {
-        $employee = Employee::create(['nombre' => 'Juan API']);
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        Sanctum::actingAs($admin);
+        $employeeUser = User::factory()->create([
+            'role' => User::ROLE_EMPLOYEE,
+        ]);
+
+        $employee = Employee::create([
+            'user_id' => $employeeUser->id,
+            'nombre' => 'Juan API',
+            'documento' => 'PAYROLL-API-002',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 1000000,
@@ -108,6 +127,9 @@ class PayrollApiTest extends TestCase
 
     public function test_cannot_process_closed_cycle(): void
     {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        Sanctum::actingAs($admin);
+
         $cycle = PayrollCycle::create([
             'fecha_inicio' => '2026-04-01',
             'fecha_fin' => '2026-04-15',
@@ -123,7 +145,17 @@ class PayrollApiTest extends TestCase
 
     public function test_can_list_payrolls_with_filters(): void
     {
-        $employee = Employee::create(['nombre' => 'Juan']);
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        Sanctum::actingAs($admin);
+        $employeeUser = User::factory()->create([
+            'role' => User::ROLE_EMPLOYEE,
+        ]);
+
+        $employee = Employee::create([
+            'user_id' => $employeeUser->id,
+            'nombre' => 'Juan',
+            'documento' => 'PAYROLL-API-003',
+        ]);
         $cycle = PayrollCycle::create([
             'fecha_inicio' => '2026-04-01',
             'fecha_fin' => '2026-04-15',

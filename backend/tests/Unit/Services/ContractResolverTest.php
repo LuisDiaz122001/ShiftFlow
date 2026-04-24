@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\Contract;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\ContractResolver;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +25,7 @@ class ContractResolverTest extends TestCase
 
     public function test_it_resolves_active_contract_correct_date(): void
     {
-        $employee = Employee::create(['nombre' => 'Test Employee']);
+        $employee = $this->createEmployee('SERVICE-CONTRACT-001');
         
         $contract = Contract::create([
             'employee_id' => $employee->id,
@@ -41,7 +42,7 @@ class ContractResolverTest extends TestCase
 
     public function test_it_throws_exception_if_no_active_contract_on_date(): void
     {
-        $employee = Employee::create(['nombre' => 'Test Employee']);
+        $employee = $this->createEmployee('SERVICE-CONTRACT-002');
         
         Contract::create([
             'employee_id' => $employee->id,
@@ -59,7 +60,7 @@ class ContractResolverTest extends TestCase
 
     public function test_it_ignores_inactive_contracts(): void
     {
-        $employee = Employee::create(['nombre' => 'Test Employee']);
+        $employee = $this->createEmployee('SERVICE-CONTRACT-003');
         
         Contract::create([
             'employee_id' => $employee->id,
@@ -71,5 +72,16 @@ class ContractResolverTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $this->resolver->resolve($employee, Carbon::parse('2026-06-01'));
+    }
+
+    private function createEmployee(string $documento): Employee
+    {
+        $user = User::factory()->create();
+
+        return Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Test Employee',
+            'documento' => $documento,
+        ]);
     }
 }

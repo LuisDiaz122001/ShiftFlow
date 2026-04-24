@@ -61,7 +61,12 @@ class PayrollDomainIntegrityTest extends TestCase
 
     public function test_regeneration_increments_version_and_maintains_snapshot(): void
     {
-        $employee = Employee::create(['nombre' => 'Luis']);
+        $user = User::factory()->create();
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Luis',
+            'documento' => 'DOMAIN-001',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2400000,
@@ -75,8 +80,6 @@ class PayrollDomainIntegrityTest extends TestCase
             'fecha_pago' => '2026-04-30',
             'estado' => PayrollCycle::STATUS_OPEN,
         ]);
-
-        $user = User::factory()->create();
         $shift = Shift::create([
             'user_id' => $user->id,
             'employee_id' => $employee->id,
@@ -111,8 +114,12 @@ class PayrollDomainIntegrityTest extends TestCase
             'estado' => PayrollCycle::STATUS_CLOSED,
         ]);
 
-        $employee = Employee::create(['nombre' => 'Luis']);
         $user = User::factory()->create();
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Luis',
+            'documento' => 'DOMAIN-002',
+        ]);
         $shift = Shift::create([
             'user_id' => $user->id,
             'employee_id' => $employee->id,
@@ -140,11 +147,15 @@ class PayrollDomainIntegrityTest extends TestCase
         // Vamos a verificar que si la suma no coincide, arroja excepción.
         // Lo validaremos indirectamente asegurando que el flujo normal funciona.
         
-        $employee = Employee::create(['nombre' => 'Luis']);
+        $user = User::factory()->create();
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Luis',
+            'documento' => 'DOMAIN-003',
+        ]);
         Contract::create(['employee_id' => $employee->id, 'salario_base' => 1000000, 'fecha_inicio' => '2026-01-01', 'estado' => 'activo']);
         $cycle = PayrollCycle::create(['fecha_inicio' => '2026-04-01', 'fecha_fin' => '2026-04-15', 'fecha_pago' => '2026-04-15', 'estado' => 'open']);
-        
-        $user = User::factory()->create();
+
         $shift = Shift::create(['user_id' => $user->id, 'employee_id' => $employee->id, 'fecha_inicio' => '2026-04-05 08:00:00', 'fecha_fin' => '2026-04-05 16:00:00']);
         app(\App\Actions\CalculateShiftAction::class)->execute($shift);
         

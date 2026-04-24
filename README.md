@@ -1,125 +1,77 @@
-# 🚀 ShiftFlow - Plataforma de Nómina Inteligente
+# ShiftFlow - Gestión Inteligente de Turnos y Nómina
 
-ShiftFlow es una plataforma de gestión de nómina moderna, diseñada con un núcleo de cálculo determinístico y una arquitectura auditable preparada para el mercado colombiano.
+ShiftFlow es una plataforma empresarial diseñada para la gestión operativa de turnos de trabajo y la automatización del cálculo de recargos laborales. Construida con una arquitectura moderna y robusta, permite a las organizaciones tener un control total sobre las jornadas de sus empleados, desde el registro inicial hasta el desglose financiero detallado.
 
-## 💎 Características Principales
+## 🚀 Características Principales
 
-### ⚙️ Motor de Cálculo de Turnos
-*   Cálculo automático de recargos nocturnos, dominicales y festivos.
-*   Gestión de horas extras (diurnas/nocturnas).
-*   Integración con contratos reales para resolución de salario base.
+- **Gestión de Identidad**: Autenticación centralizada con roles diferenciados (Administrador, Supervisor, Empleado).
+- **Motor de Cálculos Laborales**: Clasificación automática de horas diurnas, nocturnas y extras según la normativa laboral colombiana.
+* **API First**: Backend versionado y desacoplado, listo para integraciones.
+* **Interfaz Moderna**: Experiencia de usuario fluida mediante Inertia.js y Vue 3.
+* **Integridad de Datos**: Estrictas reglas de negocio a nivel de base de datos y aplicación para evitar inconsistencias.
 
-### 🛡️ Integridad y Auditoría
-*   **Snapshot de Auditoría**: Captura inmutable de las reglas laborales y salarios al momento del cálculo.
-*   **Control de Estados**: Ciclos de nómina protegidos con máquina de estados (`open` -> `generated` -> `closed`).
-*   **Inmutabilidad**: Bloqueo real de edición de turnos y cálculos en periodos cerrados.
-*   **Integridad Matemática**: Validación estricta de `Ingresos - Deducciones == Neto` antes del cierre.
+## 📦 Módulos del Sistema
 
-### 🌐 API REST v1
-*   API profesional y versionada bajo `/api/v1/`.
-*   Resources estandarizados para una integración sencilla con el frontend.
-*   Eager loading implementado para eliminar problemas de consultas N+1.
+### 🔐 Autenticación y Seguridad
+* Control de acceso basado en roles (RBAC).
+* Middleware de protección de rutas y Policies para autorizaciones granulares.
+
+### 👥 Gestión de Empleados
+* CRUD integral con lógica transaccional (vínculo obligatorio Usuario-Empleado).
+* Validación estricta de documentos de identidad únicos.
+
+### 🕒 Gestión de Turnos (Shifts)
+* Ciclo de vida completo del turno: `pendiente`, `aprobado`, `rechazado` y `anulado`.
+* Validación cruzada de fechas y restricción de integridad con eliminación en cascada.
+* Interfaz administrativa para la auditoría de turnos en tiempo real.
+
+## ⚙️ Arquitectura Técnica
+
+El proyecto sigue principios de **Clean Architecture** para garantizar la mantenibilidad y escalabilidad:
+
+- **Controllers**: Delgados, encargados únicamente de la orquestación del flujo.
+- **Actions**: Clases de un solo propósito que encapsulan la lógica de negocio pura.
+- **FormRequests**: Centralización de las reglas de validación de entrada.
+- **Resources**: Transformación y estandarización de las respuestas de la API.
+- **Model Events**: Salvaguardas de integridad a nivel de Eloquent.
+
+## 🧮 Motor de Cálculo Laboral (Acciones Puras)
+
+El núcleo de ShiftFlow es su motor de cálculo, el cual procesa los turnos dinámicamente:
+
+1. **`ClassifyShiftHoursAction`**: Segmenta el turno en jornada diurna (06:00 - 21:00) y nocturna (21:00 - 06:00).
+2. **`ClassifyOvertimeHoursAction`**: Identifica el exceso sobre las 8 horas diarias, aplicando un reinicio de límite a la medianoche (soporte multidía).
+3. **`CalculateShiftPaymentsAction`**: Aplica los recargos legales vigentes:
+    * **Ordinaria Diurna**: 1.00
+    * **Ordinaria Nocturna**: 1.35
+    * **Extra Diurna**: 1.25
+    * **Extra Nocturna**: 1.75
+    * *Nota: Los cálculos se basan en un estándar de 240 horas mensuales.*
 
 ## 🛠️ Stack Tecnológico
 
-*   **Backend**: Laravel 11.x (PHP 8.2+)
-*   **Base de Datos**: MySQL / SQLite (Auditoría JSON soportada)
-*   **Testing**: PHPUnit (Suite de integridad de dominio y API)
-*   **Arquitectura**: Capa de Aplicación basada en **Actions** (Business Logic Decoupling)
+- **Backend**: Laravel 11 (PHP 8.2+)
+- **Frontend**: Vue 3 + Inertia.js
+- **Styling**: TailwindCSS
+- **Base de Datos**: MySQL / MariaDB
+- **Comunicación**: Axios para peticiones asíncronas
+- **Testing**: PHPUnit / Pest
 
-## 🚀 Instalación y Setup
+## 📈 Estado Actual del Proyecto
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone https://github.com/LuisDiaz122001/ShiftFlow.git
-   ```
+Actualmente, el sistema se encuentra en una fase de **Core Operativo Estable**:
+* ✅ Gestión de empleados y autenticación completa.
+* ✅ Motor de cálculos laborales verificado y preciso.
+* ✅ API v1 funcional para la gestión de turnos.
+* ✅ Interfaz web para registro y auditoría de turnos con feedback en tiempo real.
+* ⚠️ **Importante**: Los cálculos financieros se realizan **al vuelo (dinámicos)** y se exponen vía API/UI; la persistencia definitiva de estos valores en el módulo de nómina es el siguiente paso.
 
-2. **Instalar dependencias**
-   ```bash
-   composer install
-   npm install
-   ```
+## 🗺️ Roadmap / Próximos Pasos
 
-3. **Configurar el entorno**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-4. **Migraciones y Seeds**
-   ```bash
-   php artisan migrate --seed
-   ```
-
-5. **Ejecutar tests**
-   ```bash
-   php artisan test
-   ```
-
-## 🌐 API REST v1
-
-La plataforma expone una API RESTful documentada bajo el estándar **OpenAPI 3.0**.
-
-### 📄 Documentación Interactiva
-Puedes visualizar y probar la API utilizando el archivo [openapi.yaml](file:///c:/xampp/htdocs/ShiftFlow/backend/openapi.yaml) en herramientas como:
-*   [Swagger Editor](https://editor.swagger.io/)
-*   [Postman](https://www.postman.com/) (Importar YAML)
-
-### 📍 Endpoints Principales
-
-| Recurso | Método | Endpoint | Descripción |
-| :--- | :--- | :--- | :--- |
-| **Turnos** | POST | `/api/v1/shifts` | Registrar y calcular un turno. |
-| **Ciclos** | POST | `/api/v1/payroll-cycles/{id}/process` | Liquidar nómina masiva del ciclo. |
-| **Nóminas** | GET | `/api/v1/payrolls?employee_id={id}` | Consultar historial de pagos. |
-
-## 🛡️ Seguridad y Autorización (Gold Standard)
-
-ShiftFlow implementa un modelo de autorización de **tres niveles** basado en el middleware `CheckRole`, protegiendo cada endpoint según la función del usuario.
-
-### 🔐 Roles del Sistema
-
-| Rol | Descripción |
-|:---|:---|
-| `admin` | Control total del sistema (aprobaciones, nómina, ciclos). |
-| `supervisor` | Acceso de lectura a empleados y dashboard. |
-| `employee` | Acceso restringido a sus propios turnos y nóminas. |
-
-### 📋 Matriz de Acceso por Endpoint
-
-| Endpoint | employee | supervisor | admin |
-|:---|:---:|:---:|:---:|
-| `POST /auth/login` | ✅ | ✅ | ✅ |
-| `GET /auth/me` | ✅ | ✅ | ✅ |
-| `POST /auth/logout` | ✅ | ✅ | ✅ |
-| `GET /shifts` (propios) | ✅ | ✅ | ✅ |
-| `POST /shifts` (pendiente) | ✅ | ✅ | ✅ |
-| `GET /payrolls` (propias) | ✅ | ✅ | ✅ |
-| `GET /employees` | ❌ | ✅ | ✅ |
-| `POST /shifts/{id}/approve` | ❌ | ❌ | ✅ |
-| `POST /shifts/{id}/reject` | ❌ | ❌ | ✅ |
-| `POST /shifts/{id}/void` | ❌ | ❌ | ✅ |
-| `POST /payroll-cycles` | ❌ | ❌ | ✅ |
-| `POST /payroll-cycles/{id}/process` | ❌ | ❌ | ✅ |
-| `POST /payroll-cycles/{id}/close` | ❌ | ❌ | ✅ |
-
-### 🔑 Cuentas de Prueba (Seeder)
-
-| Email | Password | Rol |
-|:---|:---|:---|
-| `admin@test.com` | `password` | `admin` |
-| `emp@test.com` | `password` | `employee` |
-
-### 📋 Ciclo de Vida de los Turnos
-1.  **Registro**: Los empleados registran turnos en estado `pending`.
-2.  **Aprobación**: Un administrador revisa y marca como `approved`.
-3.  **Inmutabilidad**: Una vez aprobado o rechazado, el turno **no puede ser editado**.
-4.  **Anulación (Voiding)**: Si un turno aprobado es erróneo, se debe **anular** (no eliminar). El sistema permite crear un turno de reemplazo con trazabilidad cruzada.
-
-### 🚫 Políticas de Integridad
-*   **Zero-Delete**: La eliminación física de turnos está prohibida a nivel de modelo.
-*   **Ownership Check**: El sistema inyecta forzosamente el `employee_id` desde el usuario autenticado, impidiendo la suplantación de identidades.
-*   **Blindaje de Nómina**: El motor de liquidación ignora automáticamente turnos anulados o no aprobados.
+1. **Módulo de Nómina (Payroll)**: Integración de los cálculos de turnos en el cierre de ciclos de pago.
+2. **Persistencia de Liquidación**: Guardado de desgloses financieros al aprobar turnos o cerrar ciclos.
+3. **Reportes y Exportación**: Generación de desgloses en PDF/Excel para contabilidad.
+4. **Dashboard de Métricas**: Visualización de costos operativos por empleado y departamento.
 
 ---
-Desarrollado como una solución robusta para la gestión de personal operativo bajo estándares de auditoría estricta.
+*ShiftFlow - Optimizando la gestión del capital humano.*

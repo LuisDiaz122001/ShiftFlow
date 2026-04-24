@@ -3,25 +3,48 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Employee extends Model
 {
     use HasFactory;
 
+    /**
+     * @deprecated Legacy database value kept only for backward compatibility.
+     * Use the boolean "activo" field as the source of truth.
+     */
     public const ESTADO_ACTIVO = 'activo';
 
+    /**
+     * @deprecated Legacy database value kept only for backward compatibility.
+     * Use the boolean "activo" field as the source of truth.
+     */
     public const ESTADO_INACTIVO = 'inactivo';
 
     protected $fillable = [
         'user_id',
         'nombre',
-        'estado',
+        'documento',
+        'telefono',
+        'salario_base',
+        'activo',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'salario_base' => 'decimal:2',
+            'activo' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {

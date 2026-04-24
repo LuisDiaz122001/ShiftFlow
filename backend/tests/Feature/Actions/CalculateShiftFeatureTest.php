@@ -6,6 +6,7 @@ use App\Actions\CalculateShiftAction;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\LaborRule;
+use App\Models\PayrollCycle;
 use App\Models\Shift;
 use App\Models\ShiftCalculation;
 use Carbon\Carbon;
@@ -32,12 +33,23 @@ class CalculateShiftFeatureTest extends TestCase
             'extra_diurna' => 25,
             'extra_nocturna' => 75,
         ]);
+
+        PayrollCycle::create([
+            'fecha_inicio' => '2026-04-16',
+            'fecha_fin' => '2026-04-30',
+            'fecha_pago' => '2026-04-30',
+            'estado' => PayrollCycle::STATUS_OPEN,
+        ]);
     }
 
     public function test_it_calculates_and_persists_a_shift_correctly(): void
     {
         $user = \App\Models\User::factory()->create();
-        $employee = Employee::create(['nombre' => 'Juan Perez']);
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Juan Perez',
+            'documento' => 'ACT-CALC-001',
+        ]);
         
         // Contrato de 2.4M (10.000 por hora segun referencia de 240h/mes)
         Contract::create([
@@ -57,7 +69,8 @@ class CalculateShiftFeatureTest extends TestCase
 
         /** @var CalculateShiftAction $action */
         $action = app(CalculateShiftAction::class);
-        $calculation = $action->execute($shift);
+        $action->execute($shift);
+        $calculation = $shift->refresh()->calculation;
 
         // Verificaciones en Base de Datos
         $this->assertDatabaseHas('shift_calculations', [
@@ -76,7 +89,11 @@ class CalculateShiftFeatureTest extends TestCase
     public function test_it_is_idempotent_and_updates_if_exists(): void
     {
         $user = \App\Models\User::factory()->create();
-        $employee = Employee::create(['nombre' => 'Juan Perez']);
+        $employee = Employee::create([
+            'user_id' => $user->id,
+            'nombre' => 'Juan Perez',
+            'documento' => 'ACT-CALC-002',
+        ]);
         Contract::create([
             'employee_id' => $employee->id,
             'salario_base' => 2400000,

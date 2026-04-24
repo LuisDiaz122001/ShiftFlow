@@ -29,6 +29,7 @@ class Shift extends Model
         'rejected_at',
         'voided_by',
         'voids_shift_id',
+        'notas',
     ];
 
     /**
@@ -46,6 +47,13 @@ class Shift extends Model
 
     protected static function booted(): void
     {
+        // Validación de fechas (Regla de Negocio)
+        static::saving(function (Shift $shift) {
+            if ($shift->fecha_fin <= $shift->fecha_inicio) {
+                throw new \InvalidArgumentException('La fecha de fin debe ser posterior a la fecha de inicio.');
+            }
+        });
+
         // Regla de Oro: Prohibición total de eliminación (Zero-Delete)
         static::deleting(function (Shift $shift) {
             // Bypass en consola (Migraciones/Seeds), pero forzar en Tests y Web

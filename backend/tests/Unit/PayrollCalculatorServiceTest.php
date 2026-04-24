@@ -176,7 +176,8 @@ class PayrollCalculatorServiceTest extends TestCase
         return Employee::query()->create([
             'user_id' => $user->id,
             'nombre' => $user->name,
-            'estado' => Employee::ESTADO_ACTIVO,
+            'documento' => 'PAYROLL-CALC-' . $user->id,
+            'activo' => true,
         ]);
     }
 

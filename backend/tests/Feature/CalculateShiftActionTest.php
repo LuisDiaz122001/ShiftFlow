@@ -6,6 +6,7 @@ use App\Actions\CalculateShiftAction;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\LaborRule;
+use App\Models\PayrollCycle;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,7 +38,8 @@ class CalculateShiftActionTest extends TestCase
         $employee = Employee::query()->create([
             'user_id' => $user->id,
             'nombre' => $user->name,
-            'estado' => Employee::ESTADO_ACTIVO,
+            'documento' => 'CALC-FEATURE-001',
+            'activo' => true,
         ]);
 
         Contract::query()->create([
@@ -48,6 +50,13 @@ class CalculateShiftActionTest extends TestCase
             'estado' => Contract::ESTADO_ACTIVO,
         ]);
 
+        PayrollCycle::query()->create([
+            'fecha_inicio' => '2026-04-01',
+            'fecha_fin' => '2026-04-15',
+            'fecha_pago' => '2026-04-15',
+            'estado' => PayrollCycle::STATUS_OPEN,
+        ]);
+
         $shift = Shift::query()->create([
             'user_id' => $user->id,
             'employee_id' => $employee->id,
@@ -55,13 +64,15 @@ class CalculateShiftActionTest extends TestCase
             'fecha_fin' => '2026-04-13 17:00:00',
         ]);
 
-        $calculation = app(CalculateShiftAction::class)->handle($shift);
+        app(CalculateShiftAction::class)->execute($shift);
+        $calculation = $shift->refresh()->calculation;
 
         $this->assertDatabaseHas('shift_calculations', [
             'shift_id' => $shift->id,
             'valor_total' => 92500.00,
         ]);
 
+        $this->assertNotNull($calculation);
         $this->assertSame(9.0, $calculation->total_hours);
         $this->assertSame(92500.0, $calculation->total_pay);
         $this->assertCount(2, $calculation->breakdown);

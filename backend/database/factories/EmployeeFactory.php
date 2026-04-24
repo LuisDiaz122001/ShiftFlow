@@ -20,7 +20,10 @@ class EmployeeFactory extends Factory
         return [
             'user_id' => \App\Models\User::factory(),
             'nombre' => $this->faker->name(),
-            'estado' => 'activo',
+            'documento' => $this->faker->unique()->numerify('CC##########'),
+            'telefono' => $this->faker->optional()->numerify('3#########'),
+            'salario_base' => 0,
+            'activo' => true,
         ];
     }
 }

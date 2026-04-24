@@ -12,14 +12,27 @@ class EmployeeResource extends JsonResource
      *
      * @return array<string, mixed>
      */
-    public function toArray(\Illuminate\Http\Request $request): array
+    public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
+            'user_id' => $this->user_id,
             'nombre' => $this->nombre,
             'email' => $this->user?->email,
-            'contract' => $this->whenLoaded('activeContract'), // Necesitaremos un accessor o relación para esto
+            'documento' => $this->documento,
+            'telefono' => $this->telefono,
+            'salario_base' => $this->salario_base !== null ? (float) $this->salario_base : null,
+            'activo' => (bool) $this->activo,
+            'user' => $this->whenLoaded('user', function (): array {
+                return [
+                    'id' => $this->user->id,
+                    'name' => $this->user->name,
+                    'email' => $this->user->email,
+                    'role' => $this->user->role,
+                ];
+            }),
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
     }
 }

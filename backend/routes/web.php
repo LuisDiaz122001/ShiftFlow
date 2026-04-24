@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeWebController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShiftWebController;
 use Illuminate\Foundation\Application;
@@ -31,6 +32,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 // Rutas exclusivas de Admin y Supervisor
 Route::middleware(['auth', 'role:admin,supervisor'])->group(function () {
+    Route::get('/employees', [EmployeeWebController::class, 'index'])->name('employees.manage');
     // (Futuras rutas web de administración de empleados irán aquí)
 });
 

@@ -37,7 +37,13 @@ Route::prefix('v1')->group(function () {
         // ADMIN + SUPERVISOR — Gestión de empleados
         // ─────────────────────────────────────────────
         Route::middleware('role:admin,supervisor')->group(function () {
-            Route::apiResource('employees', EmployeeController::class)->only(['index', 'show']);
+            Route::apiResource('employees', EmployeeController::class)->only([
+                'index',
+                'show',
+                'store',
+                'update',
+                'destroy',
+            ]);
         });
 
         // ─────────────────────────────────────────────
