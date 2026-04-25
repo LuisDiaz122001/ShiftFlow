@@ -30,6 +30,10 @@ class Shift extends Model
         'voided_by',
         'voids_shift_id',
         'notas',
+        'total_hours',
+        'diurnas_hours',
+        'nocturnas_hours',
+        'total_pago',
     ];
 
     /**
@@ -42,6 +46,10 @@ class Shift extends Model
         return [
             'fecha_inicio' => 'datetime',
             'fecha_fin' => 'datetime',
+            'total_hours' => 'decimal:2',
+            'diurnas_hours' => 'decimal:2',
+            'nocturnas_hours' => 'decimal:2',
+            'total_pago' => 'decimal:2',
         ];
     }
 
@@ -81,7 +89,17 @@ class Shift extends Model
             if ($shift->payrollCycle && $shift->payrollCycle->isLockedForEdition()) {
                 throw new \RuntimeException('No se puede modificar un turno de un ciclo de nómina cerrado.');
             }
+
+            // Integridad Contable: Bloquear si ya está incluido en un Payroll generado
+            if ($shift->payrolls()->where('estado', Payroll::STATUS_LOCKED)->exists()) {
+                throw new \RuntimeException('Integridad Contable: Este turno ya fue liquidado en una nómina cerrada y no puede modificarse.');
+            }
         });
+    }
+
+    public function payrolls(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Payroll::class, 'payroll_shift');
     }
 
     public function approve(\App\Models\User $admin): void

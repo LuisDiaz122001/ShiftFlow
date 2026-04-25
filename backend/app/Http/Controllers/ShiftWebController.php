@@ -18,7 +18,7 @@ class ShiftWebController extends Controller
     {
         $user = $request->user();
 
-        $query = Shift::with(['employee:id,nombre', 'calculation:shift_id,valor_total'])
+        $query = Shift::with(['employee:id,nombre'])
             ->latest('fecha_inicio');
 
         if ($user->isAdmin()) {
@@ -71,13 +71,14 @@ class ShiftWebController extends Controller
 
         $data['user_id'] = $user->id;
 
-        $shift = Shift::create($data);
-
         try {
-            $calculateShift->execute($shift);
+            $shift = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $calculateShift) {
+                $shift = Shift::create($data);
+                $calculateShift->execute($shift);
+                return $shift;
+            });
         } catch (\Exception $e) {
-            // Si el cálculo falla, informamos pero el turno queda registrado
-            return back()->withErrors(['calculation' => $e->getMessage()]);
+            return back()->withErrors(['error' => 'Error al procesar el turno: ' . $e->getMessage()]);
         }
 
         return back()->with('success', 'Turno registrado correctamente. Estado: ' . $shift->status . '.');

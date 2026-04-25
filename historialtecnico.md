@@ -89,16 +89,24 @@ En esta sesión se consolidó el módulo de Turnos (Shifts) integrando el motor 
 - **Acciones Administrativas**: Integración de botones para Aprobar, Rechazar y Anular turnos directamente desde la tabla, con validación de estado y confirmación.
 - **Motor de Cálculo**: Refactorización y uso de `ClassifyShiftHoursAction`, `ClassifyOvertimeHoursAction` y `CalculateShiftPaymentsAction` para procesar datos dinámicos en la API.
 - **UX Mejorada**: Implementación de estados de carga por fila (*loading per row*) y actualizaciones de estado locales (sin recarga de página).
+- **Refactorización UI/UX (SaaS Style)**:
+    - **Landing Page (`Welcome.vue`)**: Transformación total de la página por defecto de Laravel en una landing page profesional con secciones Hero, Features y Contacto.
+    - **Flujo de Autenticación**: Rediseño completo de `Login.vue` y `Register.vue` con gradientes premium, cards de cristal y animaciones fluidas.
+    - **Páginas Públicas**: Creación e integración de `ContactPage.vue`, `TermsPage.vue` y `PrivacyPage.vue`.
+    - **Rutas Públicas**: Habilitación de rutas informativas en `web.php` sin requerir autenticación.
 
 ### Decisiones técnicas
 - **Cálculo Dinámico vs Persistido**: Se decidió mantener los cálculos como propiedades dinámicas en el `ShiftResource` para esta fase; la persistencia se realizará durante el cierre del ciclo de nómina.
 - **Backend como Fuente de Verdad**: El frontend no realiza cálculos matemáticos; solo renderiza los valores proporcionados por el motor de cálculo del backend.
 - **Normalización UTC**: Aplicada a todas las acciones de cálculo para garantizar precisión en turnos nocturnos y multidía.
 - **Manejo de Extras**: Implementación del reinicio de límite de 8 horas a las 00:00 para cumplimiento de legislación laboral.
+- **Desacoplamiento de Layouts**: Se optó por incluir la lógica de diseño directamente en las páginas de Auth para permitir un control total sobre el fondo de gradiente y el estilo de las cards sin afectar el `GuestLayout` legado.
 
 ### Estado actual
 - **Módulo de Empleados**: Estable y funcional.
 - **Módulo de Turnos**: Completo en backend y frontend (registro, auditoría y cálculo).
+- **Interfaz Pública**: Landing page y páginas informativas 100% funcionales con estética premium.
+- **Autenticación**: Flujo de Login y Registro modernizado.
 - **Módulo de Nómina**: Motor de cálculo listo; integración con ciclos de nómina pendiente.
 - **Legacy**: Tabla `shift_calculations` y relación `calculation` marcadas para eliminación definitiva.
 
@@ -107,3 +115,31 @@ En esta sesión se consolidó el módulo de Turnos (Shifts) integrando el motor 
 - [ ] Implementación del módulo de Nómina (`PayrollCycle`) para liquidación masiva.
 - [ ] Mejora de filtros y búsqueda en el listado de turnos.
 - [ ] Desarrollo del Dashboard de métricas operativas.
+
+## [2026-04-24] - Versión 1.0 Estable: Nómina e Integridad Contable
+
+Esta sesión marcó la culminación del núcleo operativo de ShiftFlow, transformándolo en un sistema de registro contable inmutable.
+
+### Cambios realizados
+- **Source of Truth (Shift)**: Se movieron todos los campos de cálculo (`total_hours`, `diurnas_hours`, `nocturnas_hours`, `total_pago`) directamente a la tabla `shifts`, eliminando la dependencia de tablas externas.
+- **Módulo de Nómina (Payroll)**: Implementación de liquidaciones por periodos con lógica de agregación de turnos aprobados.
+- **Ledger Contable Inmutable**:
+    - Las nóminas se generan con estado **`LOCKED`** y timestamp de cierre (`closed_at`).
+    - Protección a nivel de modelo que impide la edición o eliminación de registros liquidados.
+    - Bloqueo automático de edición en turnos que ya forman parte de una nómina cerrada.
+- **Exportación PDF**: Implementación de `GeneratePayrollPdfAction` y template profesional en Blade para la generación de comprobantes oficiales.
+- **Hardening de Integridad**:
+    - Uso de `restrictOnDelete` en llaves foráneas para prevenir la pérdida de registros históricos.
+    - Unificación del motor de cálculo en API y Web mediante acciones compartidas.
+    - Refactorización del Dashboard para utilizar la nueva fuente de verdad.
+- **Consolidación de Arquitectura**: Limpieza de código legacy y unificación del flujo **Controller → Action → Model**.
+
+### Decisiones técnicas
+- **Snapshot Operativo**: Se decidió que la nómina debe ser un snapshot inmutable de los IDs de los turnos en el momento de la liquidación para garantizar trazabilidad.
+- **Transaccionalidad Total**: Todas las operaciones de creación y cálculo de turnos se envolvieron en transacciones de base de datos.
+- **Prevención de Doble Liquidación**: Se añadió un filtro en la agregación para excluir turnos que ya pertenecen a una nómina `LOCKED` o `PAID`.
+
+### Estado Final v1.0
+- **Producción**: El sistema está listo para su despliegue operativo inicial.
+- **Estabilidad**: El motor de cálculo es preciso y persistente.
+- **Seguridad**: Los datos financieros están protegidos por salvaguardas de integridad inalterables.

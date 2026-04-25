@@ -23,15 +23,11 @@ class ShiftResource extends JsonResource
             'status' => $this->status,
             'notas' => $this->notas,
             
-            // Campos dinámicos (calculados al vuelo, presentes solo en store por ahora)
-            'total_hours' => $this->when(isset($this->total_hours), $this->total_hours),
-            'diurnas_hours' => $this->when(isset($this->diurnas_hours), $this->diurnas_hours),
-            'nocturnas_hours' => $this->when(isset($this->nocturnas_hours), $this->nocturnas_hours),
-
-            'valor_hora' => $this->when(isset($this->valor_hora), $this->valor_hora),
-            'pago_diurno' => $this->when(isset($this->pago_diurno), $this->pago_diurno),
-            'pago_nocturno' => $this->when(isset($this->pago_nocturno), $this->pago_nocturno),
-            'total_pago' => $this->when(isset($this->total_pago), $this->total_pago),
+            // Campos del modelo (Source of Truth)
+            'total_hours' => (float) $this->total_hours,
+            'diurnas_hours' => (float) $this->diurnas_hours,
+            'nocturnas_hours' => (float) $this->nocturnas_hours,
+            'total_pago' => (float) $this->total_pago,
 
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

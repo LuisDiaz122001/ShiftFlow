@@ -17,6 +17,8 @@ const props = defineProps({
     },
 });
 
+defineEmits(['click']);
+
 const classes = computed(() => {
     return props.active
         ? 'flex items-center px-4 py-3 text-sm font-medium transition-colors rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 group'
@@ -31,7 +33,11 @@ const iconClasses = computed(() => {
 </script>
 
 <template>
-    <Link :href="href" :class="classes">
+    <Link 
+        :href="href" 
+        :class="classes"
+        @click="$emit('click')"
+    >
         <component :is="icon" :class="iconClasses" />
         <slot />
     </Link>

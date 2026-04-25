@@ -3,14 +3,12 @@
 namespace App\Actions;
 
 use App\Models\Shift;
-use App\Models\ShiftCalculation;
 use App\Services\PayrollCalculatorService;
 
 class CalculateShiftAction
 {
     public function __construct(
         private readonly PayrollCalculatorService $calculator,
-        private readonly UpsertShiftCalculationAction $upsertCalculation,
         private readonly AssignShiftToCycleAction $assignCycle,
     ) {
     }
@@ -36,7 +34,12 @@ class CalculateShiftAction
         // 2. Ejecutar cálculo técnico
         $result = $this->calculator->calculate($shift);
 
-        // 3. Persistir resultado (Idempotencia)
-        $this->upsertCalculation->execute($shift, $result);
+        // 3. Persistir resultado directamente en el modelo Shift (Fuente Única de Verdad)
+        $shift->update([
+            'diurnas_hours' => $result['horas_diurnas'] + $result['horas_extra_diurnas'],
+            'nocturnas_hours' => $result['horas_nocturnas'] + $result['horas_extra_nocturnas'],
+            'total_hours' => $result['horas_diurnas'] + $result['horas_nocturnas'] + $result['horas_extra_diurnas'] + $result['horas_extra_nocturnas'],
+            'total_pago' => $result['total'],
+        ]);
     }
 }

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shift;
-use App\Models\ShiftCalculation;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Models\Employee;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -19,15 +20,18 @@ class DashboardController extends Controller
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();
 
-        // 1. Obtener ID de empleado si aplica (Blindaje de Ownership)
+        // 1. Determinar nivel de acceso (Admin o Supervisor)
+        $isAdminOrSupervisor = in_array($user->role, [User::ROLE_ADMIN, User::ROLE_SUPERVISOR]);
+
+        // 2. Obtener ID de empleado si aplica (Blindaje de Ownership)
         $employeeId = $user->employee?->id;
 
-        // 2. Base query para turnos (según rol)
+        // 3. Base query para turnos (según rol)
         $shiftQuery = Shift::query()
-            ->when(!$user->isAdmin(), fn($q) => $q->where('employee_id', $employeeId))
+            ->when(!$isAdminOrSupervisor, fn($q) => $q->where('employee_id', $employeeId))
             ->whereBetween('fecha_inicio', [$start, $end]);
 
-        // 3. Métricas agrupadas (Agregaciones puras en DB)
+        // 4. Métricas agrupadas (Agregaciones puras en DB)
         
         // Turnos Pendientes: Solo count()
         $pendingShifts = (clone $shiftQuery)
@@ -39,21 +43,24 @@ class DashboardController extends Controller
             ->where('status', Shift::STATUS_APPROVED)
             ->where('is_voided', false);
 
-        // Horas Aprobadas: SUM() de columnas de cálculo
-        $approvedHours = ShiftCalculation::whereIn('shift_id', $approvedBaseQuery->pluck('id'))
-            ->selectRaw('SUM(horas_diurnas + horas_nocturnas + horas_extra_diurnas + horas_extra_nocturnas) as total')
-            ->value('total') ?? 0;
+        // Agregaciones directas desde la tabla shifts (Source of Truth)
+        $metrics = $approvedBaseQuery->selectRaw('
+            SUM(total_hours) as approved_hours,
+            SUM(total_pago) as estimated_pay
+        ')->first();
 
-        // Pago Estimado: SUM() de valor_total
-        $estimatedPay = ShiftCalculation::whereIn('shift_id', $approvedBaseQuery->pluck('id'))
-            ->sum('valor_total') ?? 0;
+        // 5. Conteo de Empleados (Lógica solicitada por el usuario)
+        $employeesCount = $isAdminOrSupervisor
+            ? Employee::count() 
+            : ($employeeId ? 1 : 0);
 
         return Inertia::render('Dashboard', [
             'stats' => [
-                'approved_hours' => (float) $approvedHours,
+                'approved_hours' => (float) ($metrics->approved_hours ?? 0),
                 'pending_shifts' => (int) $pendingShifts,
-                'estimated_pay' => (float) $estimatedPay,
+                'estimated_pay' => (float) ($metrics->estimated_pay ?? 0),
             ],
+            'employeesCount' => (int) $employeesCount,
             'role' => $user->role,
         ]);
     }

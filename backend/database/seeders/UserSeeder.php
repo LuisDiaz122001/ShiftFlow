@@ -26,6 +26,17 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // Creacion usuario Luis Diaz (Admin Creador App)
+        User::updateOrCreate(
+            ['email' => 'luguigamerpro@gmail.com'],
+            [
+                'name'              => 'Luis Diaz',
+                'password'          => Hash::make('LuisD2001*'),
+                'role'              => User::ROLE_ADMIN,
+                'email_verified_at' => now(),
+            ]
+        );
+
         // Usuario de prueba para el rol Employee
         User::updateOrCreate(
             ['email' => 'emp@test.com'],

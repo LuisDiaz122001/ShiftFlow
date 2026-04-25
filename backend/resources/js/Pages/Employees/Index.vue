@@ -78,7 +78,7 @@ async function loadEmployees(page = 1) {
     clearGlobalMessages();
 
     try {
-        const response = await axios.get(route('employees.index'), {
+        const response = await axios.get(route('employees.data'), {
             params: { page },
         });
 
@@ -333,7 +333,7 @@ function formatCurrency(value) {
                                 </p>
                             </div>
 
-                            <div v-else class="overflow-x-auto">
+                            <div v-else class="overflow-x-auto scrollbar-thin">
                                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                                     <thead class="bg-slate-50 dark:bg-slate-950/40">
                                         <tr>

@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\V1\PayrollCycleController;
 use App\Http\Controllers\Api\V1\ShiftController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->as('api.')->group(function () {
 
     // ─────────────────────────────────────────────────
     // PÚBLICA — No requiere autenticación
