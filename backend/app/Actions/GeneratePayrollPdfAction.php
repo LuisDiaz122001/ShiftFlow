@@ -3,38 +3,41 @@
 namespace App\Actions;
 
 use App\Models\Payroll;
+use App\Models\PayrollCycle;
+use App\Models\Shift;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPDF;
 
 class GeneratePayrollPdfAction
 {
-    /**
-     * Generates a PDF instance for a specific payroll settlement.
-     * Only works for LOCKED or PAID payrolls (Accounting Integrity).
-     *
-     * @param int $payrollId
-     * @return DomPDF
-     * @throws \RuntimeException
-     */
     public function execute(int $payrollId): DomPDF
     {
-        $payroll = Payroll::with(['employee.user', 'shifts.calculation'])->findOrFail($payrollId);
+        $payroll = Payroll::with(['employee.user', 'cycle', 'details'])->findOrFail($payrollId);
 
-        // Security check: Only locked/paid payrolls can be exported as official documents
-        if (!$payroll->isLocked()) {
-            throw new \RuntimeException('Documento No Disponible: Solo las nóminas cerradas pueden ser exportadas a PDF.');
+        if (
+            $payroll->estado !== Payroll::STATUS_PAID
+            && ! in_array($payroll->cycle?->estado, [PayrollCycle::STATUS_GENERATED, PayrollCycle::STATUS_CLOSED], true)
+        ) {
+            throw new \RuntimeException('Documento no disponible: la nomina aun no pertenece a un ciclo generado.');
         }
 
-        $data = [
+        $shifts = Shift::query()
+            ->where('employee_id', $payroll->employee_id)
+            ->where('payroll_cycle_id', $payroll->payroll_cycle_id)
+            ->where('status', Shift::STATUS_APPROVED)
+            ->where('is_voided', false)
+            ->orderBy('fecha_inicio')
+            ->get();
+
+        return Pdf::loadView('payrolls.pdf', [
             'payroll' => $payroll,
             'employee' => $payroll->employee,
             'user' => $payroll->employee->user,
-            'shifts' => $payroll->shifts,
+            'cycle' => $payroll->cycle,
+            'details' => $payroll->details,
+            'shifts' => $shifts,
             'generated_at' => now(),
-        ];
-
-        return Pdf::loadView('payrolls.pdf', $data)
-            ->setPaper('a4', 'portrait')
+        ])->setPaper('a4', 'portrait')
             ->setWarnings(false);
     }
 }

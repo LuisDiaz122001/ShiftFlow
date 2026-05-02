@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contract extends Model
 {
+    use HasFactory;
     public const ESTADO_ACTIVO = 'activo';
 
     public const ESTADO_INACTIVO = 'inactivo';

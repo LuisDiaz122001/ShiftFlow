@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios';
 import { computed, onMounted, reactive, ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 import {
     CheckCircle2,
     CircleX,
@@ -58,7 +59,7 @@ const isCreateMode = computed(() => !isEditing.value);
 const formTitle = computed(() => (isEditing.value ? 'Editar empleado' : 'Crear empleado'));
 const formDescription = computed(() =>
     isEditing.value
-        ? 'Actualiza los datos laborales y, si aplica, el correo o la contraseña del usuario asociado.'
+        ? 'Actualiza los datos laborales y, si aplica, el correo o la contrasena del usuario asociado.'
         : 'Crea el usuario y el perfil del empleado usando la API existente.',
 );
 const paginationLabel = computed(() => {
@@ -119,7 +120,7 @@ function cancelEdit() {
     clearGlobalMessages();
 }
 
-async function submitForm() {
+function submitForm() {
     submitting.value = true;
     resetErrors();
     clearGlobalMessages();
@@ -137,27 +138,37 @@ async function submitForm() {
         payload.password = form.password;
     }
 
-    try {
-        if (isCreateMode.value) {
-            await axios.post(route('employees.store'), payload);
-            successMessage.value = 'Empleado creado correctamente.';
-            await loadEmployees(1);
-        } else {
-            await axios.put(route('employees.update', editingEmployeeId.value), payload);
-            successMessage.value = 'Empleado actualizado correctamente.';
-            await loadEmployees(pagination.currentPage);
-        }
+    const requestConfig = {
+        onSuccess: () => {
+            successMessage.value = isCreateMode.value
+                ? 'Empleado creado correctamente.'
+                : 'Empleado actualizado correctamente.';
+            resetForm();
+            loadEmployees(isCreateMode.value ? 1 : pagination.currentPage);
+        },
+        onError: (errorsResponse) => {
+            if (errorsResponse && typeof errorsResponse === 'object') {
+                Object.keys(errors).forEach((field) => {
+                    errors[field] = Array.isArray(errorsResponse[field])
+                        ? errorsResponse[field][0]
+                        : '';
+                });
+            }
+        },
+        onFinish: () => {
+            submitting.value = false;
+        },
+    };
 
-        resetForm();
-    } catch (error) {
-        handleFormError(error);
-    } finally {
-        submitting.value = false;
+    if (isCreateMode.value) {
+        router.post(route('employees.store'), payload, requestConfig);
+    } else {
+        router.put(route('employees.update', editingEmployeeId.value), payload, requestConfig);
     }
 }
 
-async function removeEmployee(employee) {
-    const confirmed = window.confirm(`¿Eliminar a ${employee.nombre} y su usuario asociado?`);
+function removeEmployee(employee) {
+    const confirmed = window.confirm(`Eliminar a ${employee.nombre} y su usuario asociado?`);
 
     if (!confirmed) {
         return;
@@ -166,25 +177,26 @@ async function removeEmployee(employee) {
     deletingId.value = employee.id;
     clearGlobalMessages();
 
-    try {
-        await axios.delete(route('employees.destroy', employee.id));
-        successMessage.value = 'Empleado eliminado correctamente.';
+    const nextPage =
+        employees.value.length === 1 && pagination.currentPage > 1
+            ? pagination.currentPage - 1
+            : pagination.currentPage;
 
-        const nextPage =
-            employees.value.length === 1 && pagination.currentPage > 1
-                ? pagination.currentPage - 1
-                : pagination.currentPage;
-
-        await loadEmployees(nextPage);
-
-        if (editingEmployeeId.value === employee.id) {
-            resetForm();
-        }
-    } catch (error) {
-        globalError.value = resolveErrorMessage(error, 'No fue posible eliminar el empleado.');
-    } finally {
-        deletingId.value = null;
-    }
+    router.delete(route('employees.destroy', employee.id), {
+        onSuccess: () => {
+            successMessage.value = 'Empleado eliminado correctamente.';
+            loadEmployees(nextPage);
+            if (editingEmployeeId.value === employee.id) {
+                resetForm();
+            }
+        },
+        onError: () => {
+            globalError.value = 'No fue posible eliminar el empleado.';
+        },
+        onFinish: () => {
+            deletingId.value = null;
+        },
+    });
 }
 
 function resetForm() {
@@ -211,23 +223,6 @@ function clearGlobalMessages() {
     successMessage.value = '';
 }
 
-function handleFormError(error) {
-    const validationErrors = error?.response?.data?.errors;
-
-    if (validationErrors && typeof validationErrors === 'object' && !Array.isArray(validationErrors)) {
-        Object.keys(errors).forEach((field) => {
-            errors[field] = Array.isArray(validationErrors[field]) ? validationErrors[field][0] : '';
-        });
-
-        if (!globalError.value && error?.response?.data?.message) {
-            globalError.value = error.response.data.message;
-        }
-
-        return;
-    }
-
-    globalError.value = resolveErrorMessage(error, 'No fue posible guardar el empleado.');
-}
 
 function resolveErrorMessage(error, fallback) {
     const data = error?.response?.data;
@@ -266,10 +261,10 @@ function formatCurrency(value) {
                     <div class="max-w-2xl">
                         <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                             <Users class="h-4 w-4" />
-                            Administración
+                            Administracion
                         </div>
                         <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            Gestión de empleados
+                            Gestion de empleados
                         </h1>
                         <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                             Administra usuarios laborales desde una sola pantalla. La interfaz consume la API existente y refleja las validaciones del backend.
@@ -353,7 +348,7 @@ function formatCurrency(value) {
                                             </td>
                                             <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{{ employee.documento }}</td>
                                             <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
-                                                <div>{{ employee.telefono || 'Sin teléfono' }}</div>
+                                                <div>{{ employee.telefono || 'Sin telefono' }}</div>
                                                 <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">User ID: {{ employee.user_id }}</div>
                                             </td>
                                             <td class="px-4 py-4 text-sm font-medium text-slate-900 dark:text-white">{{ formatCurrency(employee.salario_base) }}</td>
@@ -397,7 +392,7 @@ function formatCurrency(value) {
                                 v-if="pagination.lastPage > 1"
                                 class="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <p class="text-sm text-slate-500 dark:text-slate-400">Página {{ pagination.currentPage }} de {{ pagination.lastPage }}</p>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">Pagina {{ pagination.currentPage }} de {{ pagination.lastPage }}</p>
                                 <div class="flex gap-2">
                                     <SecondaryButton
                                         :disabled="pagination.currentPage <= 1 || loading"
@@ -458,7 +453,7 @@ function formatCurrency(value) {
                                 </div>
 
                                 <div class="space-y-2">
-                                    <InputLabel for="telefono" value="Teléfono" />
+                                    <InputLabel for="telefono" value="Telefono" />
                                     <input
                                         id="telefono"
                                         v-model="form.telefono"
@@ -501,7 +496,7 @@ function formatCurrency(value) {
                                 <div class="flex items-center justify-between">
                                     <InputLabel for="password" :value="isCreateMode ? 'Password' : 'Password (opcional)'" />
                                     <span class="text-xs text-slate-400 dark:text-slate-500">
-                                        {{ isCreateMode ? 'Mínimo 8 caracteres' : 'Déjalo vacío para conservar la actual' }}
+                                        {{ isCreateMode ? 'Minimo 8 caracteres' : 'Dejalo vacio para conservar la actual' }}
                                     </span>
                                 </div>
                                 <input

@@ -1,18 +1,16 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { 
+import {
     ChevronLeft,
     Calendar,
-    Clock,
     DollarSign,
     CheckCircle2,
     Clock4,
-    ArrowRight,
     FileText,
-    Download
+    Download,
+    Receipt,
 } from 'lucide-vue-next';
-import ShiftBreakdown from '@/Components/ShiftBreakdown.vue';
 
 const props = defineProps({
     payroll: Object,
@@ -22,18 +20,18 @@ const props = defineProps({
 const formPay = useForm({});
 
 const markAsPaid = () => {
-    if (confirm('¿Está seguro de marcar esta nómina como pagada?')) {
-        formPay.patch(route('payrolls.pay', props.payroll.id));
+    if (confirm('Esta seguro de marcar esta nomina como pagada?')) {
+        formPay.patch(route('payrolls.updateStatus', props.payroll.id), {
+            estado: 'paid',
+        });
     }
 };
 
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        maximumFractionDigits: 0,
-    }).format(value);
-};
+const formatCurrency = (value) => new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+}).format(value ?? 0);
 
 const getStatusBadge = (status) => {
     switch (status) {
@@ -48,138 +46,158 @@ const getStatusBadge = (status) => {
 </script>
 
 <template>
-    <AppLayout :title="'Liquidación #' + payroll.id">
+    <AppLayout :title="'Nomina #' + payroll.id">
         <div class="space-y-8">
-            <!-- Header Section -->
             <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-center gap-4">
-                    <Link 
+                    <Link
                         :href="route('payrolls.index')"
                         class="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 transition-all shadow-sm"
                     >
                         <ChevronLeft class="w-6 h-6" />
                     </Link>
                     <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Liquidación #{{ payroll.id }}</h1>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Nomina #{{ payroll.id }}</h1>
                         <div class="flex items-center gap-2 mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium">
                             <span>{{ payroll.employee.user.name }}</span>
                             <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                            <span>{{ payroll.fecha_inicio }} al {{ payroll.fecha_fin }}</span>
+                            <span>{{ payroll.cycle?.fecha_inicio ?? '-' }} al {{ payroll.cycle?.fecha_fin ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3">
-                    <span 
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border text-sm font-bold capitalize"
-                        :class="getStatusBadge(payroll.estado)"
-                    >
+                    <span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border text-sm font-bold capitalize" :class="getStatusBadge(payroll.estado)">
                         <CheckCircle2 v-if="payroll.estado === 'paid'" class="w-4 h-4" />
                         <Clock4 v-else class="w-4 h-4" />
-                        {{ payroll.estado === 'paid' ? 'Pagado' : (payroll.estado === 'locked' ? 'Cerrado' : 'Pendiente') }}
+                        {{ payroll.estado === 'paid' ? 'Pagado' : payroll.estado }}
                     </span>
 
-                    <a 
-                        v-if="payroll.estado === 'locked' || payroll.estado === 'paid'"
-                        :href="route('payrolls.export', payroll.id)"
+                    <a
+                        :href="route('payrolls.pdf', payroll.id)"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
                     >
                         <Download class="w-4 h-4" />
-                        PDF
+                        Descargar PDF
                     </a>
 
-                    <button 
+                    <button
                         v-if="payroll.estado !== 'paid'"
                         @click="markAsPaid"
                         class="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/25"
                     >
-                        Marcar como Pagada
+                        Marcar como pagada
                     </button>
                 </div>
             </div>
 
-            <!-- Summary Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Total Horas</p>
-                    <div class="flex items-end justify-between relative z-10">
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">{{ payroll.total_hours }}h</h3>
-                        <Clock class="w-8 h-8 text-indigo-500/20" />
-                    </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Sueldo base</p>
+                    <h3 class="text-3xl font-black text-slate-900 dark:text-white">{{ formatCurrency(payroll.salario_base_pagado) }}</h3>
                 </div>
 
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Horas Diurnas</p>
-                    <div class="flex items-end justify-between relative z-10">
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">{{ payroll.diurnas_hours }}h</h3>
-                        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                            D
-                        </div>
-                    </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Recargos</p>
+                    <h3 class="text-3xl font-black text-slate-900 dark:text-white">{{ formatCurrency(payroll.recargos_pagados) }}</h3>
                 </div>
 
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Horas Nocturnas</p>
-                    <div class="flex items-end justify-between relative z-10">
-                        <h3 class="text-3xl font-black text-slate-900 dark:text-white">{{ payroll.nocturnas_hours }}h</h3>
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                            N
-                        </div>
-                    </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Deducciones</p>
+                    <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+                        {{ formatCurrency((payroll.deduccion_salud ?? 0) + (payroll.deduccion_pension ?? 0)) }}
+                    </h3>
                 </div>
 
-                <div class="bg-indigo-600 p-6 rounded-3xl border border-indigo-500 shadow-xl shadow-indigo-500/20 relative overflow-hidden">
-                    <p class="text-xs font-bold text-indigo-100 uppercase tracking-widest mb-3">Neto a Pagar</p>
-                    <div class="flex items-end justify-between text-white relative z-10">
-                        <h3 class="text-3xl font-black">{{ formatCurrency(payroll.total_pago) }}</h3>
+                <div class="bg-indigo-600 p-6 rounded-3xl border border-indigo-500 shadow-xl shadow-indigo-500/20">
+                    <p class="text-xs font-bold text-indigo-100 uppercase tracking-widest mb-3">Neto a pagar</p>
+                    <div class="flex items-end justify-between text-white">
+                        <h3 class="text-3xl font-black">{{ formatCurrency(payroll.neto_pagado) }}</h3>
                         <DollarSign class="w-8 h-8 opacity-40" />
                     </div>
-                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                 </div>
             </div>
 
-            <!-- Shifts Detail Section -->
-            <div class="space-y-6">
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <div class="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+                <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
                         <FileText class="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Detalle contable</h3>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">Turnos Incluidos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 dark:bg-slate-950/40">
+                                <tr>
+                                    <th class="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider">Concepto</th>
+                                    <th class="px-6 py-3 text-left font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-6 py-3 text-right font-bold text-slate-500 uppercase tracking-wider">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tr v-for="detail in payroll.details" :key="detail.id">
+                                    <td class="px-6 py-4 text-slate-900 dark:text-white font-medium">{{ detail.label }}</td>
+                                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400 uppercase">{{ detail.type }}</td>
+                                    <td class="px-6 py-4 text-right font-semibold text-slate-900 dark:text-white">{{ formatCurrency(detail.amount) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div 
-                        v-for="shift in shifts" 
-                        :key="shift.id"
-                        class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm"
-                    >
-                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                            <div class="flex items-center gap-6">
-                                <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-400 dark:text-slate-500">
-                                    <Clock class="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-3 text-slate-900 dark:text-white font-bold text-lg">
-                                        <span>{{ new Date(shift.fecha_inicio).toLocaleDateString() }}</span>
-                                        <ArrowRight class="w-4 h-4 text-slate-300 dark:text-slate-700" />
-                                        <span>{{ new Date(shift.fecha_fin).toLocaleDateString() }}</span>
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <Calendar class="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Ciclo asociado</h3>
+                        </div>
+                        <dl class="space-y-3 text-sm">
+                            <div class="flex items-center justify-between gap-4">
+                                <dt class="text-slate-500 dark:text-slate-400">Inicio</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ payroll.cycle?.fecha_inicio ?? '-' }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <dt class="text-slate-500 dark:text-slate-400">Fin</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ payroll.cycle?.fecha_fin ?? '-' }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <dt class="text-slate-500 dark:text-slate-400">Pago</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ payroll.fecha_pago ?? '-' }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <dt class="text-slate-500 dark:text-slate-400">Version</dt>
+                                <dd class="font-semibold text-slate-900 dark:text-white">{{ payroll.version }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <Receipt class="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Turnos del ciclo</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <div v-for="shift in shifts" :key="shift.id" class="rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="font-semibold text-slate-900 dark:text-white">
+                                            {{ new Date(shift.fecha_inicio).toLocaleDateString() }}
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                                            {{ new Date(shift.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                                            -
+                                            {{ new Date(shift.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                                        </p>
                                     </div>
-                                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                        {{ new Date(shift.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} - 
-                                        {{ new Date(shift.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
-                                    </p>
+                                    <div class="text-right">
+                                        <p class="font-semibold text-slate-900 dark:text-white">{{ formatCurrency(shift.total_pago) }}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">{{ shift.total_hours }} h</p>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Individual Shift Breakdown -->
-                            <div class="flex-grow lg:max-w-2xl">
-                                <ShiftBreakdown 
-                                    v-if="shift.calculation"
-                                    :calculation="shift.calculation"
-                                />
-                                <div v-else class="text-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-slate-400 italic">
-                                    Cálculos no disponibles para este turno
-                                </div>
+                            <div v-if="shifts.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
+                                No hay turnos aprobados asociados a este ciclo.
                             </div>
                         </div>
                     </div>

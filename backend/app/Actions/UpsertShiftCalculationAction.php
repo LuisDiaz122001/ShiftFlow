@@ -7,20 +7,6 @@ use App\Models\ShiftCalculation;
 
 class UpsertShiftCalculationAction
 {
-    /**
-     * Guarda o actualiza el resultado del cálculo de un turno de forma idempotente.
-     *
-     * @param Shift $shift
-     * @param array{
-     *     total: float,
-     *     horas_diurnas: float,
-     *     horas_nocturnas: float,
-     *     horas_extra_diurnas: float,
-     *     horas_extra_nocturnas: float,
-     *     detalle: array<int, array<string, mixed>>
-     * } $calculationResults
-     * @return ShiftCalculation
-     */
     public function execute(Shift $shift, array $calculationResults): ShiftCalculation
     {
         return ShiftCalculation::updateOrCreate(

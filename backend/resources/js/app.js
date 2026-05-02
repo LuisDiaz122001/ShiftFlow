@@ -5,7 +5,6 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
-import { Ziggy } from './ziggy'; // 🔥 IMPORTANTE
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -19,7 +18,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)
-            .use(ZiggyVue, Ziggy) // 🔥 AQUÍ ESTÁ LA CLAVE
+            .use(ZiggyVue) 
             .mount(el);
     },
     progress: {

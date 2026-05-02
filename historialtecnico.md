@@ -1,77 +1,68 @@
 # Historial Técnico - ShiftFlow
 
-Este archivo se utiliza para rastrear el progreso diario del desarrollo, mantener la continuidad entre sesiones y permitir una comprensión rápida de lo que se realizó anteriormente.
+Este archivo documenta los problemas técnicos, las causas y las soluciones implementadas durante el desarrollo.
 
-## [2026-04-24] - Versión 1.1 Estable: Unificación Visual y Hardening de Core
+## [2026-05-01] - Corrección de rutas web e Inertia
 
-Esta sesión consolidó la interfaz de usuario bajo un estándar SaaS Premium y resolvió problemas críticos de autenticación y navegación.
+### Problema
+- La raíz `/` mostraba una página de bienvenida en lugar del dashboard.
+- Las rutas de empleados usaban llamadas a `api.*` en un flujo basado en sesión.
+- El frontend recibía el error: `All Inertia requests must receive a valid Inertia response`.
 
-### Duración de la sesión
-- 4-5 horas
-### Nivel de impacto
-- Crítico / Alto (Estabilización de navegación SPA y unificación de UI)
+### Causa
+- La ruta `/` devolvía `Inertia::render('Welcome')` cuando no estaba autenticado.
+- El componente `Employees/Index.vue` enviaba datos a rutas API token-based en vez de rutas web.
+- Los controladores web devolvían respuestas JSON en lugar de redirecciones compatibles con Inertia.
 
-### Cambios realizados
-- **Unificación de Interfaz (Premium SaaS UI)**:
-    - Migración de todos los módulos (Nómina, Empleados, Dashboard) al nuevo `AppLayout.vue`.
-    - Eliminación de dependencias de `AuthenticatedLayout` legado, unificando el diseño de Sidebar, Topbar y Cards.
-    - Implementación de **Scrollbars personalizados** globales para una estética más fluida.
-- **Navegación SPA (Ziggy Integration)**:
-    - Integración total de **Ziggy** en el frontend.
-    - Refactorización de `app.js` para usar inyección explícita del objeto de rutas.
-    - Corrección de colisión de rutas: prefijo `api.` a rutas de Sanctum.
-- **Gestión de Empleados (Fixes Críticos)**:
-    - Implementación de **StoreEmployeeRequest** para validación atómica.
-    - Refactorización de `EmployeeWebController@data` para devolver respuestas paginadas compatibles.
-- **Dashboard v2.0**:
-    - Adición de la métrica **"Empleados Registrados"** y corrección de lógica para Administradores y Supervisores.
-- **Autenticación**:
-    - Alineación de `APP_URL` y configuración de sesiones para evitar errores 419.
+### Solución
+- Actualización de `routes/web.php` para redirigir `/` siempre a `route('dashboard')`.
+- Reemplazo de `route('api.employees.*')` por `route('employees.*')` en el frontend.
+- Agregado `PUT` y `DELETE` a `routes/web.php` para `employees.update` y `employees.destroy`.
+- Refactorización de los métodos `store`, `update` y `destroy` en `EmployeeWebController` para retornar `redirect()->route('employees.index')->with(...)`.
 
 ---
 
-## [2026-04-24] - Versión 1.0 Estable: Nómina e Integridad Contable
+## [2026-05-01] - Ajuste de Inertia POST/PUT/DELETE en Employees
 
-Esta sesión marcó la culminación del núcleo operativo de ShiftFlow, transformándolo en un sistema de registro contable inmutable.
+### Problema
+- El componente utilizaba Axios para `post`, `put` y `delete` en operaciones de formulario.
+- Se perdía la compatibilidad con las redirecciones de Laravel y la validación de Inertia.
 
-### Cambios realizados
-- **Source of Truth (Shift)**: Se movieron todos los campos de cálculo (`total_hours`, `diurnas_hours`, `nocturnas_hours`, `total_pago`) directamente a la tabla `shifts`.
-- **Módulo de Nómina (Payroll)**: Implementación de liquidaciones por periodos con lógica de agregación de turnos aprobados.
-- **Ledger Contable Inmutable**:
-    - Las nóminas se generan con estado **`LOCKED`** y timestamp de cierre.
-    - Protección a nivel de modelo que impide la edición o eliminación de registros liquidados.
-- **Exportación PDF**: Implementación de `GeneratePayrollPdfAction` y template profesional.
+### Causa
+- Inertia esperaba un response válido o una redirección, pero el backend devolvía JSON.
+- El manejo manual de errores Axios no coincidía con el flujo de `router.post` de Inertia.
+
+### Solución
+- Importación de `router` desde `@inertiajs/vue3`.
+- Reemplazo de las llamadas `axios.post/axios.put/axios.delete` por `router.post/router.put/router.delete`.
+- Uso de callbacks `onSuccess`, `onError` y `onFinish` para limpieza de formulario y asignación de errores.
 
 ---
 
-## [2026-04-23] - Implementación de Employee Management
+## [2026-04-24] - Problema 419 y configuración de sesiones
 
-### Duración de la sesión
-- 5-6 horas
+### Problema
+- Errores 419 en formularios y rutas protegidas por sesión.
 
-### Nivel de impacto
-- Alto
+### Causa
+- Configuración incorrecta de `APP_URL` y token CSRF en el frontend.
 
-### Cambios realizados
-- Refactorización del modelo **Employee** (campo `activo` como fuente de verdad).
-- Restricción de `user_id` como **NOT NULL**.
-- Implementación de la API con lógica transaccional (creación atómica de User + Employee).
-- Introducción de la capa de **Actions** (Create, Update, Delete).
-- Refactorización de la entidad **Shift** (campo `notas`, `employee_id` NOT NULL).
-- Creación de **CalculateShiftHoursAction** y **ClassifyShiftHoursAction** (jornadas 06:00-21:00).
-- Implementación de **CalculateShiftPaymentsAction** con recargos y extras según legislación colombiana.
-- Creación de **CalculateOvertimeAction** con reinicio de límite a las 00:00.
+### Solución
+- Limpieza de cache con `php artisan optimize:clear`.
+- Verificación de `axios.defaults.withCredentials = true`.
+- Confirmación de que el token CSRF se inyecta desde `resources/views/app.blade.php`.
 
-### Decisiones técnicas
-- No se permite la mutación silenciosa de datos; todas las operaciones deben ser explícitas.
-- El `documento` debe ser proporcionado por el usuario.
-- Uso estricto de **transacciones de DB** para operaciones críticas.
+---
 
-### Problemas encontrados
-- Discordancia en las contraseñas (hashing manual vs automático).
-- Errores 403 por asignación incorrecta de roles.
-- Esquema legado que permitía `user_id` nulo.
+## [2026-04-23] - Decisión técnica: Inertia + Web routes vs API
 
-### Soluciones aplicadas
-- Se corrigió el hashing para seguir el estándar de Laravel.
-- Se reforzaron las restricciones de DB mediante migraciones de limpieza.
+### Problema
+- Confusión entre rutas web autenticadas y endpoints API token-based.
+
+### Causa
+- Uso mixto de `api.*` y `web` en un mismo flujo de interfaz de usuario.
+
+### Solución
+- Definición clara: el UI web debe usar rutas web con sesión (`web guard`).
+- Las rutas API token-based quedan reservadas para clientes externos y móviles.
+- Refactor del proyecto para separar `routes/web.php` y `routes/api.php` de forma consistente.

@@ -14,6 +14,11 @@ class ShiftResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $totalHours = (float) $this->total_hours;
+        $diurnasHours = (float) $this->diurnas_hours;
+        $nocturnasHours = (float) $this->nocturnas_hours;
+        $totalPago = (float) $this->total_pago;
+
         return [
             'id' => $this->id,
             'employee_id' => $this->employee_id,
@@ -24,10 +29,24 @@ class ShiftResource extends JsonResource
             'notas' => $this->notas,
             
             // Campos del modelo (Source of Truth)
-            'total_hours' => (float) $this->total_hours,
-            'diurnas_hours' => (float) $this->diurnas_hours,
-            'nocturnas_hours' => (float) $this->nocturnas_hours,
-            'total_pago' => (float) $this->total_pago,
+            'total_hours' => $totalHours,
+            'diurnas_hours' => $diurnasHours,
+            'nocturnas_hours' => $nocturnasHours,
+            'total_pago' => $totalPago,
+            'calculation' => [
+                'total_hours' => $totalHours,
+                'total_pay' => $totalPago,
+                'breakdown' => [
+                    [
+                        'label' => 'diurnas',
+                        'hours' => $diurnasHours,
+                    ],
+                    [
+                        'label' => 'nocturnas',
+                        'hours' => $nocturnasHours,
+                    ],
+                ],
+            ],
 
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

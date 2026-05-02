@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante de Nómina #{{ $payroll->id }}</title>
+    <title>Comprobante de Nomina #{{ $payroll->id }}</title>
     <style>
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -16,7 +16,8 @@
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
-        .header table {
+        .header table,
+        .data-table {
             width: 100%;
         }
         .logo {
@@ -42,17 +43,17 @@
             margin-bottom: 10px;
             border-left: 4px solid #4f46e5;
         }
-        table.data-table {
-            width: 100%;
+        .data-table {
             border-collapse: collapse;
         }
-        table.data-table th, table.data-table td {
+        .data-table th,
+        .data-table td {
             padding: 10px;
             border-bottom: 1px solid #e2e8f0;
             text-align: left;
             font-size: 13px;
         }
-        table.data-table th {
+        .data-table th {
             color: #64748b;
             font-weight: bold;
         }
@@ -95,98 +96,132 @@
             <tr>
                 <td>
                     <div class="logo">ShiftFlow</div>
-                    <div style="font-size: 12px; color: #64748b;">Sistema de Gestión de Turnos y Nómina</div>
+                    <div style="font-size: 12px; color: #64748b;">Sistema de Gestion de Turnos y Nomina</div>
                 </td>
                 <td class="document-info">
-                    <div class="document-title">COMPROBANTE DE NÓMINA</div>
+                    <div class="document-title">COMPROBANTE DE NOMINA</div>
                     <div style="font-size: 14px; font-weight: bold;">#{{ str_pad($payroll->id, 6, '0', STR_PAD_LEFT) }}</div>
-                    <div class="status-badge">CERRADO / INMUTABLE</div>
+                    <div class="status-badge">{{ strtoupper($payroll->estado ?? 'pending') }}</div>
                 </td>
             </tr>
         </table>
     </div>
 
-    <div class="section-title">Información del Empleado</div>
+    <div class="section-title">Informacion del Empleado</div>
     <table class="data-table">
         <tr>
             <th>Nombre Completo:</th>
             <td>{{ $user->name }}</td>
-            <th>Identificación:</th>
+            <th>Identificacion:</th>
             <td>{{ $employee->documento }}</td>
         </tr>
         <tr>
             <th>Correo:</th>
             <td>{{ $user->email }}</td>
-            <th>Periodo:</th>
-            <td>{{ $payroll->fecha_inicio->format('d/m/Y') }} - {{ $payroll->fecha_fin->format('d/m/Y') }}</td>
+            <th>Ciclo:</th>
+            <td>{{ $cycle?->fecha_inicio?->format('d/m/Y') }} - {{ $cycle?->fecha_fin?->format('d/m/Y') }}</td>
+        </tr>
+        <tr>
+            <th>Fecha de Pago:</th>
+            <td>{{ $payroll->fecha_pago?->format('d/m/Y') }}</td>
+            <th>Version:</th>
+            <td>{{ $payroll->version }}</td>
+        </tr>
+        <tr>
+            <th>Total de horas:</th>
+            <td>{{ number_format($payroll->total_hours ?? 0, 2, ',', '.') }} h</td>
+            <th>Tarifa por hora:</th>
+            <td>${{ number_format($payroll->hourly_rate ?? 0, 0, ',', '.') }} COP</td>
+        </tr>
+        <tr>
+            <th>Total a pagar:</th>
+            <td>${{ number_format($payroll->total_amount ?? $payroll->neto_pagado, 0, ',', '.') }} COP</td>
+            <th>Estado:</th>
+            <td>{{ strtoupper($payroll->estado ?? 'pending') }}</td>
         </tr>
     </table>
 
-    <div class="section-title">Resumen de Horas y Liquidación</div>
+    <div class="section-title">Resumen de Liquidacion</div>
     <table class="data-table">
-        <thead>
-            <tr>
-                <th>Concepto</th>
-                <th class="text-center">Cantidad (Horas)</th>
-                <th class="text-right">Valor Liquidado</th>
-            </tr>
-        </thead>
         <tbody>
             <tr>
-                <td>Jornada Diurna (Ordinaria + Extras)</td>
-                <td class="text-center">{{ $payroll->diurnas_hours }}h</td>
-                <td class="text-right">-</td>
+                <td>Sueldo base proporcional</td>
+                <td class="text-right">${{ number_format($payroll->salario_base_pagado, 0, ',', '.') }} COP</td>
             </tr>
             <tr>
-                <td>Jornada Nocturna (Ordinaria + Extras)</td>
-                <td class="text-center">{{ $payroll->nocturnas_hours }}h</td>
-                <td class="text-right">-</td>
+                <td>Recargos pagados</td>
+                <td class="text-right">${{ number_format($payroll->recargos_pagados, 0, ',', '.') }} COP</td>
+            </tr>
+            <tr>
+                <td>Deduccion salud</td>
+                <td class="text-right">${{ number_format($payroll->deduccion_salud, 0, ',', '.') }} COP</td>
+            </tr>
+            <tr>
+                <td>Deduccion pension</td>
+                <td class="text-right">${{ number_format($payroll->deduccion_pension, 0, ',', '.') }} COP</td>
             </tr>
             <tr class="total-row">
-                <td>TOTAL NETO A PAGAR</td>
-                <td class="text-center">{{ $payroll->total_hours }}h</td>
-                <td class="text-right">${{ number_format($payroll->total_pago, 0, ',', '.') }} COP</td>
+                <td>Total neto a pagar</td>
+                <td class="text-right">${{ number_format($payroll->neto_pagado, 0, ',', '.') }} COP</td>
             </tr>
         </tbody>
     </table>
 
-    <div class="section-title">Detalle de Turnos</div>
+    <div class="section-title">Detalle Contable</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th class="text-center">Horas</th>
+                <th class="text-right">Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($details as $detail)
+                <tr>
+                    <td>{{ $detail->label }}</td>
+                    <td>{{ strtoupper($detail->type) }}</td>
+                    <td class="text-center">{{ $detail->hours ? number_format($detail->hours, 2) : '-' }}</td>
+                    <td class="text-right">${{ number_format($detail->amount, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="section-title">Turnos del Ciclo</div>
     <table class="data-table">
         <thead>
             <tr>
                 <th>Fecha</th>
                 <th>Inicio</th>
                 <th>Fin</th>
-                <th class="text-center">Horas</th>
-                <th class="text-right">Subtotal</th>
+                <th class="text-right">Total Turno</th>
             </tr>
         </thead>
         <tbody>
             @foreach($shifts as $shift)
-            <tr>
-                <td>{{ $shift->fecha_inicio->format('d/m/Y') }}</td>
-                <td>{{ $shift->fecha_inicio->format('H:i') }}</td>
-                <td>{{ $shift->fecha_fin->format('H:i') }}</td>
-                <td class="text-center">{{ $shift->total_hours }}h</td>
-                <td class="text-right">${{ number_format($shift->total_pago, 0, ',', '.') }}</td>
-            </tr>
+                <tr>
+                    <td>{{ $shift->fecha_inicio->format('d/m/Y') }}</td>
+                    <td>{{ $shift->fecha_inicio->format('H:i') }}</td>
+                    <td>{{ $shift->fecha_fin->format('H:i') }}</td>
+                    <td class="text-right">${{ number_format($shift->total_pago, 0, ',', '.') }}</td>
+                </tr>
             @endforeach
         </tbody>
     </table>
 
     <div class="summary-box">
         <div style="font-size: 12px;">
-            <strong>Nota Legal:</strong> Este documento representa un snapshot contable inmutable generado por el sistema ShiftFlow. 
-            Cualquier modificación en los turnos operativos después de la fecha de cierre no afectará este comprobante.
+            <strong>Snapshot:</strong> Este documento representa la liquidacion generada para el ciclo seleccionado.
         </div>
         <div style="margin-top: 10px; font-size: 11px;">
-            <strong>Fecha de Cierre Contable:</strong> {{ $payroll->closed_at->format('d/m/Y H:i:s') }}
+            <strong>Generado:</strong> {{ $generated_at->format('d/m/Y H:i:s') }}
         </div>
     </div>
 
     <div class="footer">
-        Generado automáticamente por ShiftFlow el {{ $generated_at->format('d/m/Y H:i:s') }}<br>
-        ShiftFlow - Optimización y Transparencia en la Gestión de Nómina
+        Generado automaticamente por ShiftFlow el {{ $generated_at->format('d/m/Y H:i:s') }}
     </div>
 </body>
 </html>

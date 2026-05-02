@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Attendance;
+use App\Models\Payroll;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -59,6 +61,16 @@ class Employee extends Model
     public function shifts(): HasMany
     {
         return $this->hasMany(Shift::class);
+    }
+
+    public function payrolls(): HasMany
+    {
+        return $this->hasMany(Payroll::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     public function resolveActiveContract(CarbonInterface $date): ?Contract

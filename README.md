@@ -1,66 +1,89 @@
-# ShiftFlow - Gestión Inteligente de Turnos y Nómina (v1.1 Stable)
+# ShiftFlow
 
-ShiftFlow es una plataforma empresarial de alto nivel diseñada para la gestión operativa de turnos de trabajo y la automatización del cálculo de recargos laborales. Construida con una arquitectura de **Ledger Contable Inmutable**, garantiza que cada liquidación sea una fuente de verdad definitiva, auditable y visualmente impactante.
+ShiftFlow es una aplicación empresarial para la gestión de turnos, empleados y nómina. Está diseñada para equipos que necesitan controlar horarios, calcular recargos laborales y mantener un flujo de trabajo ágil con una interfaz moderna.
 
-## 🚀 Características Principales
+## Tecnologías
 
-- **Gestión de Identidad**: Autenticación centralizada con roles diferenciados (Administrador, Supervisor, Empleado).
-- **Motor de Cálculos Laborales**: Clasificación automática de horas diurnas, nocturnas y extras según la normativa laboral colombiana.
-- **Ledger Contable Inmutable**: Sistema de nómina que congela los datos operativos en snapshots financieros protegidos contra modificaciones.
-- **Exportación Oficial**: Generación de comprobantes de nómina en PDF con sello de integridad contable.
-- **Interfaz Premium SaaS**: Experiencia de usuario de vanguardia con **Inertia.js**, **Vue 3** y **TailwindCSS**, unificada bajo un sistema de diseño cohesivo.
-- **Navegación SPA**: Integración total de **Ziggy** para una navegación instantánea sin recargas de página.
-- **Integridad de Datos**: Estrictas reglas de negocio (Source of Truth) que bloquean cambios en turnos ya liquidados.
+- Laravel 12
+- Inertia.js
+- Vue 3
+- TailwindCSS
+- Ziggy
+- MySQL / MariaDB
 
-## 📦 Módulos del Sistema
+## Características principales
 
-### 🔐 Autenticación y Seguridad
-* Control de acceso basado en roles (RBAC).
-* Middleware de protección de rutas y Policies para autorizaciones granulares.
-* Protección contra ataques CSRF y gestión segura de sesiones.
+- Gestión de empleados
+- Administración de turnos
+- Panel de control (dashboard)
+- Cálculo y liquidación de nómina
+- Autenticación con roles (admin, supervisor, empleado)
+- Navegación SPA con Inertia
 
-### 👥 Gestión de Empleados
-* CRUD integral con lógica transaccional y validación robusta vía **StoreEmployeeRequest**.
-* Sincronización atómica entre perfiles de usuario y datos laborales.
-* Visualización paginada de alto rendimiento.
+## Instalación
 
-### 🕒 Gestión de Turnos (Shifts)
-* **Fuente Única de Verdad**: Los turnos almacenan sus propios cálculos persistidos tras su aprobación.
-* Desglose financiero detallado por turno (Recargos, Extras, Ordinarias).
-* Validación cruzada de fechas y bloqueo de edición en periodos liquidados.
+1. Clonar el repositorio:
+   ```bash
+   git clone <repository-url>
+   cd ShiftFlow/backend
+   ```
+2. Instalar dependencias PHP:
+   ```bash
+   composer install
+   ```
+3. Instalar dependencias JavaScript:
+   ```bash
+   npm install
+   ```
+4. Copiar el archivo de entorno y ajustar variables:
+   ```bash
+   cp .env.example .env
+   ```
+5. Generar clave de aplicación:
+   ```bash
+   php artisan key:generate
+   ```
+6. Configurar la base de datos en `.env`.
+7. Ejecutar migraciones y seeders si es necesario:
+   ```bash
+   php artisan migrate
+   ```
 
-### 💰 Sistema de Nómina (Payroll)
-* Agregación automática de turnos aprobados por periodo.
-* Snapshots inmutables de IDs de turnos para auditoría (Audit Trail).
-* Soporte para estados de pago y cierre contable (LOCKED).
+## Ejecutar el proyecto
 
-## ⚙️ Arquitectura Técnica
+En desarrollo, ejecutar:
 
-El proyecto sigue principios de **Clean Architecture** y **SOLID**:
+```bash
+php artisan serve
+npm run dev
+```
 
-- **Controllers**: Orquestadores delgados que delegan la lógica a acciones.
-- **Actions**: Clases de un solo propósito (Single Responsibility) como `CalculateShiftAction` o `GeneratePayrollPdfAction`.
-- **FormRequests**: Centralización de reglas de negocio y validación.
-- **Inertia + Ziggy**: Puentes de comunicación reactiva entre Laravel y Vue 3.
+Luego abrir `http://127.0.0.1:8000`.
 
-## 🛠️ Stack Tecnológico
+## Estructura principal
 
-- **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: Vue 3 + Inertia.js + TailwindCSS
-- **Routing**: Ziggy Vue Next
-- **PDF Engine**: DomPDF
-- **Iconografía**: Lucide Vue Next
-- **Base de Datos**: MySQL / MariaDB
+- `routes/web.php` — rutas web y páginas Inertia
+- `resources/js/Pages` — componentes Vue de páginas
+- `resources/js/Layouts` — layouts globales de Inertia
+- `app/Http/Controllers` — controladores Laravel
+- `app/Actions` — lógica de negocio separada en acciones
+- `app/Http/Requests` — validación de formularios
 
-## 📉 Estado del Proyecto: Production Ready v1.1
+## Funcionalidades destacadas
 
-El sistema se encuentra en su versión estable consolidada:
-* ✅ Registro, cálculo y auditoría de turnos 100% funcional.
-* ✅ Sistema de nómina con snapshots inmutables y trazabilidad.
-* ✅ Gestión de empleados con validación avanzada y atómica.
-* ✅ Interfaz SaaS premium unificada en todos los módulos (Dashboard, Empleados, Nómina).
-* ✅ Navegación SPA ultrarrápida y reactiva.
-* ✅ Hardening de base de datos para prevenir pérdida de integridad.
+- Registro y gestión de empleados
+- Gestión de turnos con cálculo automático
+- Generación de nómina y estado de pago
+- Dashboard administrativo
+- Protección de rutas con middleware de roles
 
----
-*ShiftFlow - Optimizando la gestión del capital humano con integridad contable.*
+## Uso básico
+
+- Iniciar sesión como administrador o supervisor.
+- Acceder a la sección de empleados para crear, editar o eliminar registros.
+- Administrar turnos y revisar la nómina.
+- Navegar entre módulos sin recargas de página gracias a Inertia.
+
+## Notas
+
+Este README es una guía de presentación y puesta en marcha. Para detalles técnicos y registros de debugging, revisa `historialtecnico.md`.

@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Shift extends Model
 {
     use HasFactory;
+
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
     public const STATUS_REJECTED = 'rejected';
@@ -36,11 +38,6 @@ class Shift extends Model
         'total_pago',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -55,49 +52,40 @@ class Shift extends Model
 
     protected static function booted(): void
     {
-        // Validación de fechas (Regla de Negocio)
-        static::saving(function (Shift $shift) {
-            if ($shift->fecha_fin <= $shift->fecha_inicio) {
-                throw new \InvalidArgumentException('La fecha de fin debe ser posterior a la fecha de inicio.');
-            }
-        });
-
-        // Regla de Oro: Prohibición total de eliminación (Zero-Delete)
         static::deleting(function (Shift $shift) {
-            // Bypass en consola (Migraciones/Seeds), pero forzar en Tests y Web
-            if (app()->runningInConsole() && !app()->environment('testing')) {
+            if (app()->runningInConsole() && ! app()->environment('testing')) {
                 return;
             }
+
             throw new \RuntimeException('Integridad Total: La eliminación física de turnos está prohibida. Use el proceso de Anulación (Void).');
         });
 
-        // Regla de Integridad: Inmutabilidad de registros procesados
-        static::updating(function (Shift $shift) {
-            if (app()->runningInConsole() && !app()->environment('testing')) {
+        static::saving(function (Shift $shift) {
+            if (app()->runningInConsole() && ! app()->environment('testing')) {
                 return;
             }
 
-            // Si ya no es pending, es inmutable (approved, rejected, voided)
-            if ($shift->getOriginal('status') !== self::STATUS_PENDING) {
-                // Solo permitimos el cambio de status (transición controlada) o anulación (is_voided)
-                // Pero no cambios en fechas o empleado
+            if ($shift->exists && $shift->getOriginal('status') !== self::STATUS_PENDING) {
                 if ($shift->isDirty(['employee_id', 'fecha_inicio', 'fecha_fin'])) {
                     throw new \RuntimeException('Integridad Total: Un turno aprobado/rechazado es inmutable. Para corregir errores, anule y cree uno nuevo.');
                 }
             }
 
-            if ($shift->payrollCycle && $shift->payrollCycle->isLockedForEdition()) {
-                throw new \RuntimeException('No se puede modificar un turno de un ciclo de nómina cerrado.');
+            if ($shift->fecha_fin <= $shift->fecha_inicio) {
+                throw new \InvalidArgumentException('La fecha de fin debe ser posterior a la fecha de inicio.');
             }
 
-            // Integridad Contable: Bloquear si ya está incluido en un Payroll generado
-            if ($shift->payrolls()->where('estado', Payroll::STATUS_LOCKED)->exists()) {
-                throw new \RuntimeException('Integridad Contable: Este turno ya fue liquidado en una nómina cerrada y no puede modificarse.');
+            if ($shift->exists && $shift->payrollCycle && $shift->payrollCycle->isLockedForEdition()) {
+                throw new \RuntimeException('No se puede modificar un turno de un ciclo de nomina cerrado.');
+            }
+
+            if ($shift->exists && $shift->payrolls()->where('estado', Payroll::STATUS_LOCKED)->exists()) {
+                throw new \RuntimeException('Integridad Contable: Este turno ya fue liquidado en una nomina cerrada y no puede modificarse.');
             }
         });
     }
 
-    public function payrolls(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function payrolls(): BelongsToMany
     {
         return $this->belongsToMany(Payroll::class, 'payroll_shift');
     }
@@ -145,22 +133,22 @@ class Shift extends Model
         ]);
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
     }
 
-    public function calculation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function calculation(): HasOne
     {
         return $this->hasOne(ShiftCalculation::class);
     }
 
-    public function payrollCycle(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function payrollCycle(): BelongsTo
     {
         return $this->belongsTo(PayrollCycle::class);
     }

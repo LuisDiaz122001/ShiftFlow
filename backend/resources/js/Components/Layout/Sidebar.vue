@@ -5,6 +5,7 @@ import {
     Clock,
     History,
     LayoutDashboard,
+    Lock,
     ShieldCheck,
     Users,
     Wallet,
@@ -62,11 +63,33 @@ const navigationGroups = computed(() => {
             active: route().current('employees.*') 
         },
         { 
+            label: 'Operación', 
+            href: route('payrolls.dashboard'), 
+            icon: ShieldCheck, 
+            active: route().current('payrolls.dashboard') 
+        },
+        { 
             label: 'Nómina Global', 
             href: route('payrolls.index'), 
-            icon: ShieldCheck, 
-            active: route().current('payrolls.*') && ['admin', 'supervisor'].includes(role.value)
+            icon: Wallet, 
+            active: route().current('payrolls.index') || route().current('payrolls.show'),
+            roles: ['admin', 'supervisor']
         },
+        { 
+            label: 'Auditoría', 
+            href: route('payrolls.audit'), 
+            icon: History, 
+            active: route().current('payrolls.audit'),
+            roles: ['admin']
+        },
+        { 
+            label: 'Periodos', 
+            href: route('payrolls.periods'), 
+            icon: Lock, 
+            active: route().current('payrolls.periods'),
+            roles: ['admin']
+        },
+        // Cache bust: 2026-05-01-21-50
     ];
 
     return {
@@ -147,7 +170,13 @@ const navigationGroups = computed(() => {
                 </h3>
                 <ul class="space-y-1">
                     <li v-for="item in navigationGroups.admin" :key="item.label">
-                        <NavItem :href="item.href" :icon="item.icon" :active="item.active" @click="$emit('close')">
+                        <NavItem 
+                            v-if="!item.roles || item.roles.includes(role)"
+                            :href="item.href" 
+                            :icon="item.icon" 
+                            :active="item.active" 
+                            @click="$emit('close')"
+                        >
                             {{ item.label }}
                         </NavItem>
                     </li>
