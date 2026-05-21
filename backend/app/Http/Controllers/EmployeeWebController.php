@@ -8,33 +8,31 @@ use App\Actions\UpdateEmployeeAction;
 use App\Http\Requests\Api\V1\UpdateEmployeeRequest;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Models\Employee;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
 class EmployeeWebController extends Controller
 {
-    public function index(): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
-        return Inertia::render('Employees/Index');
-    }
+        $query = Employee::with('user')
+            ->orderBy('nombre');
 
-    public function data(): JsonResponse
-    {
-        $employees = Employee::with('user')
-            ->orderBy('nombre')
-            ->paginate(10);
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('documento', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($user) => $user->where('email', 'like', "%{$search}%"));
+            });
+        }
 
-        return response()->json([
-            'data' => $employees->items(),
-            'meta' => [
-                'current_page' => $employees->currentPage(),
-                'last_page' => $employees->lastPage(),
-                'total' => $employees->total(),
-                'from' => $employees->firstItem(),
-                'to' => $employees->lastItem(),
-            ],
+        return Inertia::render('Employees/Index', [
+            'employees' => $query->paginate(10)->withQueryString(),
+            'filters' => $request->only('search'),
         ]);
     }
 
@@ -52,7 +50,7 @@ class EmployeeWebController extends Controller
         $updateEmployee->execute($employee, $request->validated());
 
         return redirect()
-            ->route('employees.index')
+            ->route('employees.index', $request->only('search'))
             ->with('success', 'Empleado actualizado correctamente.');
     }
 

@@ -2,10 +2,14 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import {
+    CalendarDays,
+    ClipboardCheck,
     Clock,
+    FileText,
     History,
     LayoutDashboard,
     Lock,
+    Scale,
     ShieldCheck,
     Users,
     Wallet,
@@ -31,14 +35,16 @@ const navigationGroups = computed(() => {
     // Usamos usePage().url para asegurar reactividad en el estado activo
     const currentUrl = page.url;
 
-    const common = [
-        { 
-            label: 'Dashboard', 
-            href: route('dashboard'), 
-            icon: LayoutDashboard, 
-            active: route().current('dashboard') 
-        },
-    ];
+    const common = role.value === 'employee'
+        ? []
+        : [
+            {
+                label: 'Dashboard',
+                href: route('dashboard'),
+                icon: LayoutDashboard,
+                active: route().current('dashboard'),
+            },
+        ];
 
     const employee = [
         { 
@@ -46,6 +52,12 @@ const navigationGroups = computed(() => {
             href: route('shifts.index'), 
             icon: Clock, 
             active: route().current('shifts.*') 
+        },
+        { 
+            label: 'Asistencia', 
+            href: route('attendance.index'), 
+            icon: ClipboardCheck, 
+            active: route().current('attendance.*') 
         },
         { 
             label: 'Mi Nómina', 
@@ -89,13 +101,34 @@ const navigationGroups = computed(() => {
             active: route().current('payrolls.periods'),
             roles: ['admin']
         },
-        // Cache bust: 2026-05-01-21-50
+    ];
+
+    const config = [
+        {
+            label: 'Contratos',
+            href: route('contracts.index'),
+            icon: FileText,
+            active: route().current('contracts.*'),
+        },
+        {
+            label: 'Reglas laborales',
+            href: route('labor-rules.index'),
+            icon: Scale,
+            active: route().current('labor-rules.*'),
+        },
+        {
+            label: 'Festivos',
+            href: route('holidays.index'),
+            icon: CalendarDays,
+            active: route().current('holidays.*'),
+        },
     ];
 
     return {
         common,
         employee: role.value === 'employee' ? employee : [],
         admin: ['admin', 'supervisor'].includes(role.value) ? admin : [],
+        config: role.value === 'admin' ? config : [],
     };
 });
 </script>
@@ -124,7 +157,7 @@ const navigationGroups = computed(() => {
     >
         <!-- Logo Area -->
         <div class="flex h-16 items-center justify-between border-b border-slate-100 px-6 dark:border-slate-800/50">
-            <Link :href="route('dashboard')" class="flex items-center gap-2 group">
+            <Link :href="role === 'employee' ? route('shifts.index') : route('dashboard')" class="flex items-center gap-2 group">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white transition-transform group-hover:scale-110">SF</div>
                 <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ShiftFlow</span>
             </Link>
@@ -175,6 +208,25 @@ const navigationGroups = computed(() => {
                             :href="item.href" 
                             :icon="item.icon" 
                             :active="item.active" 
+                            @click="$emit('close')"
+                        >
+                            {{ item.label }}
+                        </NavItem>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Configuration Section (Admin only) -->
+            <div v-if="navigationGroups.config.length > 0">
+                <h3 class="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Configuración
+                </h3>
+                <ul class="space-y-1">
+                    <li v-for="item in navigationGroups.config" :key="item.label">
+                        <NavItem
+                            :href="item.href"
+                            :icon="item.icon"
+                            :active="item.active"
                             @click="$emit('close')"
                         >
                             {{ item.label }}

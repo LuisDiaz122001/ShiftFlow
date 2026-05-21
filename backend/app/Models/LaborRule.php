@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class LaborRule extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'vigente_desde',
         'hora_diurna_inicio',

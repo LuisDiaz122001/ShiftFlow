@@ -36,9 +36,10 @@ class PayrollCyclePolicy
         return $user->isAdmin() && $payrollCycle->estado === PayrollCycle::STATUS_OPEN;
     }
 
-    public function process(User $user): bool
+    public function process(User $user, PayrollCycle $payrollCycle): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin()
+            && in_array($payrollCycle->estado, [PayrollCycle::STATUS_OPEN, PayrollCycle::STATUS_GENERATED], true);
     }
 
     public function close(User $user): bool

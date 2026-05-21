@@ -39,6 +39,7 @@ export default function useChart() {
         registerChartJs();
 
         if (!canvasRef?.value || !isValidChartData(data)) {
+            destroyChart();
             return null;
         }
 
@@ -111,6 +112,9 @@ export default function useChart() {
 
     const updateChart = (data, config = {}) => {
         if (!chartInstance.value || !isValidChartData(data)) {
+            if (chartInstance.value && !isValidChartData(data)) {
+                destroyChart();
+            }
             return;
         }
 

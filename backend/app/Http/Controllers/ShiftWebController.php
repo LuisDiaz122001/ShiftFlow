@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CalculateShiftAction;
+use App\Models\Employee;
 use App\Models\Shift;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Inertia\Response;
+use RuntimeException;
 
 class ShiftWebController extends Controller
 {
@@ -14,7 +18,7 @@ class ShiftWebController extends Controller
      * Muestra el listado de turnos del empleado autenticado.
      * Admin ve todos los turnos (sin restricción de employee).
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $user = $request->user();
 
@@ -22,65 +26,105 @@ class ShiftWebController extends Controller
             ->latest('fecha_inicio');
 
         if ($user->isAdmin()) {
-            // Admin ve todos con filtro opcional
-            if ($request->has('status')) {
+            if ($request->filled('status')) {
                 $query->where('status', $request->string('status'));
             }
         } else {
-            // Employee: solo sus propios turnos
             $employee = $user->requireEmployee();
             $query->where('employee_id', $employee->id);
         }
 
         $shifts = $query->paginate(15)->withQueryString();
 
+        $employees = $user->isAdmin()
+            ? Employee::query()->orderBy('nombre')->get(['id', 'nombre'])
+            : [];
+
         return Inertia::render('Shifts/Index', [
-            'shifts'   => $shifts,
+            'shifts' => $shifts,
             'statuses' => [Shift::STATUS_PENDING, Shift::STATUS_APPROVED, Shift::STATUS_REJECTED],
-            'filters'  => $request->only('status'),
+            'filters' => $request->only('status'),
+            'employees' => $employees,
+            'canModerate' => $user->isAdmin(),
         ]);
     }
 
     /**
      * Almacena un nuevo turno para el usuario autenticado.
-     * El employee_id SIEMPRE se deriva del servidor.
+     * El employee_id SIEMPRE se deriva del servidor (salvo admin).
      */
-    public function store(Request $request, CalculateShiftAction $calculateShift)
+    public function store(Request $request, CalculateShiftAction $calculateShift): RedirectResponse
     {
         $user = $request->user();
 
         $data = $request->validate([
-            'fecha_inicio'   => ['required', 'date'],
-            'fecha_fin'      => ['required', 'date', 'after:fecha_inicio'],
-            // employee_id NO se acepta del request (inyección forzada)
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after:fecha_inicio'],
+            'notas' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // Inyección de identidad desde el servidor
         if ($user->isAdmin()) {
-            // Admin puede especificar el empleado
             $request->validate(['employee_id' => ['required', 'integer', 'exists:employees,id']]);
             $data['employee_id'] = $request->integer('employee_id');
-            $data['status']      = Shift::STATUS_APPROVED;
+            $data['status'] = Shift::STATUS_APPROVED;
             $data['approved_by'] = $user->id;
             $data['approved_at'] = now();
         } else {
-            $employee            = $user->requireEmployee();
+            $employee = $user->requireEmployee();
             $data['employee_id'] = $employee->id;
-            $data['status']      = Shift::STATUS_PENDING;
+            $data['status'] = Shift::STATUS_PENDING;
         }
 
         $data['user_id'] = $user->id;
 
         try {
-            $shift = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $calculateShift) {
+            DB::transaction(function () use ($data, $calculateShift) {
                 $shift = Shift::create($data);
                 $calculateShift->execute($shift);
-                return $shift;
             });
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error al procesar el turno: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Error al procesar el turno: '.$e->getMessage()]);
         }
 
-        return back()->with('success', 'Turno registrado correctamente. Estado: ' . $shift->status . '.');
+        return back()->with('success', 'Turno registrado correctamente.');
+    }
+
+    public function approve(Request $request, Shift $shift): RedirectResponse
+    {
+        $this->authorize('approve', Shift::class);
+
+        try {
+            $shift->approve($request->user());
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Turno aprobado correctamente.');
+    }
+
+    public function reject(Request $request, Shift $shift): RedirectResponse
+    {
+        $this->authorize('approve', Shift::class);
+
+        try {
+            $shift->reject($request->user());
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Turno rechazado correctamente.');
+    }
+
+    public function void(Request $request, Shift $shift): RedirectResponse
+    {
+        $this->authorize('void', $shift);
+
+        try {
+            $shift->void($request->user());
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Turno anulado correctamente.');
     }
 }

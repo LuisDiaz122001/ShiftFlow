@@ -40,6 +40,10 @@ class HandleInertiaRequests extends Middleware
                     'employee_id' => $request->user()->employee_id, // Accessor centralizado
                 ] : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
         ];
     }
 }

@@ -32,7 +32,9 @@ const generateForm = useForm({
     period_end: props.filters.period_end ?? '',
 });
 
-const payForm = useForm({});
+const payForm = useForm({
+    estado: '',
+});
 
 const totalPayrollAmount = computed(() => props.payrolls.data.reduce((sum, payroll) => sum + Number(payroll.total_pagado ?? 0), 0));
 const totalPayrolls = computed(() => props.payrolls.data.length);
@@ -53,9 +55,8 @@ const markAsPaid = (payrollId) => {
         return;
     }
 
-    payForm.patch(route('payrolls.updateStatus', payrollId), {
-        estado: 'paid',
-    });
+    payForm.estado = 'paid';
+    payForm.patch(route('payrolls.updateStatus', payrollId));
 };
 
 const getStatusBadge = (status) => {

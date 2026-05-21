@@ -17,13 +17,14 @@ const props = defineProps({
     shifts: Array,
 });
 
-const formPay = useForm({});
+const formPay = useForm({
+    estado: '',
+});
 
 const markAsPaid = () => {
     if (confirm('Esta seguro de marcar esta nomina como pagada?')) {
-        formPay.patch(route('payrolls.updateStatus', props.payroll.id), {
-            estado: 'paid',
-        });
+        formPay.estado = 'paid';
+        formPay.patch(route('payrolls.updateStatus', props.payroll.id));
     }
 };
 
